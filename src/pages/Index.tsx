@@ -1,16 +1,27 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import BottomNav, { TabId } from "@/components/BottomNav";
+import MenuTab from "@/components/MenuTab";
+import ShoppingTab from "@/components/ShoppingTab";
+import MealPrepTab from "@/components/MealPrepTab";
+import TipsTab from "@/components/TipsTab";
 
-// IMPORTANT: Fully REPLACE this with your own code
-const PlaceholderIndex = () => {
-  // PLACEHOLDER: Replace this entire return statement with the user's app.
-  // The inline background color is intentionally not part of the design system.
+const tabs: Record<TabId, React.ComponentType> = {
+  menu: MenuTab,
+  shopping: ShoppingTab,
+  prep: MealPrepTab,
+  tips: TipsTab,
+};
+
+const Index = () => {
+  const [activeTab, setActiveTab] = useState<TabId>("menu");
+  const ActiveComponent = tabs[activeTab];
+
   return (
-    <div className="flex min-h-screen items-center justify-center" style={{ backgroundColor: '#fcfbf8' }}>
-      <img data-lovable-blank-page-placeholder="REMOVE_THIS" src="/placeholder.svg" alt="Your app will live here!" />
+    <div className="mx-auto min-h-screen max-w-md px-4 pt-6 pb-24">
+      <ActiveComponent />
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 };
-
-const Index = PlaceholderIndex;
 
 export default Index;
