@@ -5,6 +5,8 @@ const tagColors: Record<string, string> = {
   "Praticidade": "bg-nutri-orange-light text-accent",
   "Economia": "bg-nutri-green-light text-primary",
   "Foco": "bg-secondary text-secondary-foreground",
+  "Plano B": "bg-destructive/10 text-destructive",
+  "Saúde": "bg-nutri-green-light text-primary",
 };
 
 const TipsTab = () => {
@@ -14,9 +16,9 @@ const TipsTab = () => {
       <div className="rounded-2xl bg-accent p-5 text-accent-foreground">
         <div className="flex items-center gap-2">
           <Lightbulb className="h-5 w-5" />
-          <h1 className="text-xl font-extrabold">Sobrevivência Universitária</h1>
+          <h1 className="text-xl font-extrabold">Plano B & Dicas</h1>
         </div>
-        <p className="mt-1 text-sm opacity-80">Dicas rápidas para o dia a dia 💡</p>
+        <p className="mt-1 text-sm opacity-80">Substituições rápidas e dicas de sobrevivência 💡</p>
       </div>
 
       {/* Tips cards */}

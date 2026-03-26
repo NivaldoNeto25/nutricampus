@@ -3,9 +3,8 @@ import { useUser, UserProfile } from "@/contexts/UserContext";
 import { ChevronRight, ChevronLeft, Sparkles } from "lucide-react";
 
 const goals = [
-  { label: "Ter mais energia", emoji: "⚡" },
+  { label: "Mais energia", emoji: "⚡" },
   { label: "Economizar tempo", emoji: "⏰" },
-  { label: "Manter o peso", emoji: "⚖️" },
   { label: "Ganhar massa", emoji: "💪" },
 ];
 
@@ -34,6 +33,9 @@ const restrictionOptions = [
 const OnboardingWizard = () => {
   const { completeOnboarding } = useUser();
   const [step, setStep] = useState(0);
+  const [name, setName] = useState("");
+  const [weight, setWeight] = useState("");
+  const [height, setHeight] = useState("");
   const [goal, setGoal] = useState("");
   const [routine, setRoutine] = useState("");
   const [training, setTraining] = useState<string[]>([]);
@@ -45,15 +47,18 @@ const OnboardingWizard = () => {
   };
 
   const canProceed = () => {
-    if (step === 0) return !!goal;
-    if (step === 1) return !!routine && training.length > 0;
-    if (step === 2) return preferences.length > 0 && restrictions.length > 0;
+    if (step === 0) return name.trim().length >= 2 && weight.trim() !== "" && height.trim() !== "";
+    if (step === 1) return !!goal;
+    if (step === 2) return !!routine && training.length > 0;
+    if (step === 3) return preferences.length > 0 && restrictions.length > 0;
     return true;
   };
 
   const handleFinish = () => {
     const profile: UserProfile = {
-      name: "Estudante",
+      name: name.trim(),
+      weight: parseFloat(weight) || 70,
+      height: parseFloat(height) || 170,
       goal,
       weeklyRoutine: routine,
       trainingDays: training,
@@ -63,13 +68,58 @@ const OnboardingWizard = () => {
     completeOnboarding(profile);
   };
 
+  const totalSteps = 4;
+
   const steps = [
-    // Step 0: Goal
+    // Step 0: Personal data
+    <div key="personal" className="space-y-4">
+      <div className="text-center">
+        <span className="text-4xl">👤</span>
+        <h2 className="mt-2 text-lg font-extrabold">Sobre você</h2>
+        <p className="text-sm text-muted-foreground">Informações básicas para personalizar</p>
+      </div>
+      <div className="space-y-3">
+        <div>
+          <label className="text-xs font-bold text-muted-foreground">Nome</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Seu nome"
+            className="mt-1 w-full rounded-xl border bg-card px-4 py-3 text-sm font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-bold text-muted-foreground">Peso (kg)</label>
+            <input
+              type="number"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              placeholder="70"
+              className="mt-1 w-full rounded-xl border bg-card px-4 py-3 text-sm font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-bold text-muted-foreground">Altura (cm)</label>
+            <input
+              type="number"
+              value={height}
+              onChange={(e) => setHeight(e.target.value)}
+              placeholder="170"
+              className="mt-1 w-full rounded-xl border bg-card px-4 py-3 text-sm font-semibold outline-none focus:border-primary focus:ring-1 focus:ring-primary"
+            />
+          </div>
+        </div>
+      </div>
+    </div>,
+
+    // Step 1: Goal
     <div key="goal" className="space-y-4">
       <div className="text-center">
         <span className="text-4xl">🎯</span>
         <h2 className="mt-2 text-lg font-extrabold">Qual sua meta principal?</h2>
-        <p className="text-sm text-muted-foreground">Isso nos ajuda a personalizar suas refeições</p>
+        <p className="text-sm text-muted-foreground">Isso define seu cardápio</p>
       </div>
       <div className="space-y-2">
         {goals.map((g) => (
@@ -87,7 +137,7 @@ const OnboardingWizard = () => {
       </div>
     </div>,
 
-    // Step 1: Routine + Training
+    // Step 2: Routine + Training
     <div key="routine" className="space-y-5">
       <div className="text-center">
         <span className="text-4xl">📅</span>
@@ -111,7 +161,7 @@ const OnboardingWizard = () => {
         </div>
       </div>
       <div>
-        <p className="text-sm font-bold mb-2">Dias de treino (selecione todos)</p>
+        <p className="text-sm font-bold mb-2">Tipo de treino (selecione todos)</p>
         <div className="flex flex-wrap gap-2">
           {trainingOptions.map((t) => (
             <button
@@ -130,7 +180,7 @@ const OnboardingWizard = () => {
       </div>
     </div>,
 
-    // Step 2: Preferences & Restrictions
+    // Step 3: Preferences & Restrictions
     <div key="prefs" className="space-y-5">
       <div className="text-center">
         <span className="text-4xl">🍽️</span>
@@ -180,7 +230,7 @@ const OnboardingWizard = () => {
       <div className="w-full max-w-md">
         {/* Progress */}
         <div className="mb-6 flex items-center gap-2">
-          {[0, 1, 2].map((i) => (
+          {Array.from({ length: totalSteps }).map((_, i) => (
             <div
               key={i}
               className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
@@ -190,7 +240,7 @@ const OnboardingWizard = () => {
           ))}
         </div>
 
-        <div className="rounded-2xl border bg-card p-6 shadow-lg">{steps[step]}</div>
+        <div className="rounded-2xl border bg-card p-6 shadow-lg max-h-[70vh] overflow-y-auto">{steps[step]}</div>
 
         {/* Navigation */}
         <div className="mt-4 flex gap-3">
@@ -203,7 +253,7 @@ const OnboardingWizard = () => {
             </button>
           )}
           <button
-            onClick={() => (step < 2 ? setStep(step + 1) : handleFinish())}
+            onClick={() => (step < totalSteps - 1 ? setStep(step + 1) : handleFinish())}
             disabled={!canProceed()}
             className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold transition-all duration-200 ${
               canProceed()
@@ -211,7 +261,7 @@ const OnboardingWizard = () => {
                 : "bg-muted text-muted-foreground cursor-not-allowed"
             }`}
           >
-            {step < 2 ? (
+            {step < totalSteps - 1 ? (
               <>Próximo <ChevronRight className="h-4 w-4" /></>
             ) : (
               <>

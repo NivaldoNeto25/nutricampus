@@ -1,6 +1,5 @@
-import { useState } from "react";
 import { useUser } from "@/contexts/UserContext";
-import { User, Flame, Trophy, Edit3, ChevronRight, Target, Dumbbell, Heart, Ban } from "lucide-react";
+import { User, Flame, Zap, Target, Dumbbell, Heart, Ban, Scale, Ruler } from "lucide-react";
 import {
   ChartContainer,
   ChartTooltip,
@@ -9,8 +8,7 @@ import {
 import { BarChart, Bar, XAxis, PieChart, Pie, Cell } from "recharts";
 
 const ProfileTab = () => {
-  const { profile, streak, badges, getWeeklyProgress, mealCompletions } = useUser();
-  const [editing, setEditing] = useState(false);
+  const { profile, streak, badges, getWeeklyProgress, mealCompletions, progress, currentMenu } = useUser();
   const weeklyProgress = getWeeklyProgress();
 
   // Weekly bar data
@@ -18,7 +16,7 @@ const ProfileTab = () => {
   const barData = days.map((day, i) => {
     const dayMeals = (mealCompletions[i] as boolean[] | undefined) || [];
     const done = dayMeals.filter(Boolean).length;
-    return { day, completed: done, total: 3 };
+    return { day, completed: done, total: currentMenu[i]?.meals.length || 5 };
   });
 
   const pieData = [
@@ -47,13 +45,19 @@ const ProfileTab = () => {
               <User className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-xl font-extrabold">Meu Perfil</h1>
-              <p className="text-sm opacity-80">Olá, {profile.name}! 👋</p>
+              <h1 className="text-xl font-extrabold">{profile.name}</h1>
+              <p className="text-sm opacity-80">{profile.goal}</p>
             </div>
           </div>
-          <div className="flex items-center gap-1 rounded-full bg-accent px-3 py-1.5">
-            <Flame className="h-4 w-4" />
-            <span className="text-sm font-extrabold">{streak}</span>
+          <div className="flex flex-col items-end gap-1.5">
+            <div className="flex items-center gap-1 rounded-full bg-accent px-3 py-1.5">
+              <Flame className="h-4 w-4" />
+              <span className="text-sm font-extrabold">{streak}</span>
+            </div>
+            <div className="flex items-center gap-1 rounded-full bg-primary-foreground/20 px-2.5 py-1">
+              <Zap className="h-3 w-3" />
+              <span className="text-[10px] font-bold">{progress.xp} XP</span>
+            </div>
           </div>
         </div>
       </div>
@@ -64,15 +68,7 @@ const ProfileTab = () => {
         <div className="flex items-center gap-4">
           <ChartContainer config={pieConfig} className="h-28 w-28">
             <PieChart>
-              <Pie
-                data={pieData}
-                cx="50%"
-                cy="50%"
-                innerRadius={30}
-                outerRadius={50}
-                dataKey="value"
-                strokeWidth={0}
-              >
+              <Pie data={pieData} cx="50%" cy="50%" innerRadius={30} outerRadius={50} dataKey="value" strokeWidth={0}>
                 <Cell fill="hsl(152 55% 38%)" />
                 <Cell fill="hsl(90 15% 94%)" />
               </Pie>
@@ -102,16 +98,24 @@ const ProfileTab = () => {
 
       {/* Profile Info */}
       <div className="rounded-xl border bg-card p-5 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-extrabold">👤 Seus Dados</h2>
-          <button
-            onClick={() => setEditing(!editing)}
-            className="flex items-center gap-1 text-xs font-bold text-primary"
-          >
-            <Edit3 className="h-3 w-3" /> Editar
-          </button>
-        </div>
+        <h2 className="text-sm font-extrabold mb-3">👤 Seus Dados</h2>
         <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center gap-3 rounded-lg bg-secondary p-3">
+              <Scale className="h-4 w-4 text-primary" />
+              <div>
+                <p className="text-[10px] font-bold text-muted-foreground">Peso</p>
+                <p className="text-sm font-bold">{profile.weight} kg</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-lg bg-secondary p-3">
+              <Ruler className="h-4 w-4 text-primary" />
+              <div>
+                <p className="text-[10px] font-bold text-muted-foreground">Altura</p>
+                <p className="text-sm font-bold">{profile.height} cm</p>
+              </div>
+            </div>
+          </div>
           <div className="flex items-center gap-3 rounded-lg bg-secondary p-3">
             <Target className="h-4 w-4 text-primary" />
             <div>
