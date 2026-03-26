@@ -1,18 +1,66 @@
-import { useState } from "react";
-import { prepSteps, PrepStep } from "@/data/mockData";
-import { ChefHat, Check, Clock, Lightbulb } from "lucide-react";
+import { useState, useMemo } from "react";
+import { useUser } from "@/contexts/UserContext";
+import { ChefHat, Check, Clock, Lightbulb, Sparkles } from "lucide-react";
 
 const MealPrepTab = () => {
-  const [steps, setSteps] = useState<PrepStep[]>(prepSteps);
+  const { currentMenu } = useUser();
+  
+  // Flatten all unique meals from the week
+  const allMeals = useMemo(() => {
+    const seen = new Set<string>();
+    const meals: { title: string; emoji: string; ingredients: string[]; prepSteps: string[] }[] = [];
+    currentMenu.forEach((day) =>
+      day.meals.forEach((m) => {
+        if (!seen.has(m.title) && m.prepSteps.length > 0) {
+          seen.add(m.title);
+          meals.push({ title: m.title, emoji: m.emoji, ingredients: m.ingredients, prepSteps: m.prepSteps });
+        }
+      })
+    );
+    return meals;
+  }, [currentMenu]);
 
-  const toggleStep = (id: string) => {
-    setSteps((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, done: !s.done } : s))
+  const [selectedMeals, setSelectedMeals] = useState<Set<string>>(new Set());
+  const [generatedSteps, setGeneratedSteps] = useState<{ step: string; done: boolean }[] | null>(null);
+
+  const toggleMeal = (title: string) => {
+    setSelectedMeals((prev) => {
+      const next = new Set(prev);
+      if (next.has(title)) next.delete(title);
+      else next.add(title);
+      return next;
+    });
+    setGeneratedSteps(null);
+  };
+
+  const generateSteps = () => {
+    const steps: string[] = [];
+    let stepNum = 1;
+    const selected = allMeals.filter((m) => selectedMeals.has(m.title));
+
+    // Group by similarity in prep
+    selected.forEach((meal) => {
+      meal.prepSteps.forEach((s) => {
+        steps.push(`${stepNum}. [${meal.emoji} ${meal.title}] ${s}`);
+        stepNum++;
+      });
+    });
+
+    // Add final step
+    steps.push(`${stepNum}. Monte os potes, etiquete com o dia da semana e guarde na geladeira/freezer 📦`);
+
+    setGeneratedSteps(steps.map((s) => ({ step: s, done: false })));
+  };
+
+  const toggleStep = (index: number) => {
+    setGeneratedSteps((prev) =>
+      prev ? prev.map((s, i) => (i === index ? { ...s, done: !s.done } : s)) : null
     );
   };
 
-  const doneCount = steps.filter((s) => s.done).length;
-  const progress = Math.round((doneCount / steps.length) * 100);
+  const doneCount = generatedSteps?.filter((s) => s.done).length || 0;
+  const totalSteps = generatedSteps?.length || 0;
+  const progress = totalSteps > 0 ? Math.round((doneCount / totalSteps) * 100) : 0;
 
   return (
     <div className="space-y-5 pb-4">
@@ -22,74 +70,116 @@ const MealPrepTab = () => {
           <ChefHat className="h-5 w-5" />
           <h1 className="text-xl font-extrabold">Guia Meal Prep</h1>
         </div>
-        <p className="mt-1 text-sm opacity-80">Domingo é dia de cozinhar! 🍳</p>
-        <div className="mt-3 flex items-center gap-3">
-          <div className="flex-1">
-            <div className="h-2 rounded-full bg-primary-foreground/20">
-              <div
-                className="h-2 rounded-full bg-accent transition-all duration-500"
-                style={{ width: `${progress}%` }}
-              />
+        <p className="mt-1 text-sm opacity-80">Selecione o que vai cozinhar e gere o passo a passo! 🍳</p>
+        {generatedSteps && (
+          <div className="mt-3 flex items-center gap-3">
+            <div className="flex-1">
+              <div className="h-2 rounded-full bg-primary-foreground/20">
+                <div
+                  className="h-2 rounded-full bg-accent transition-all duration-500"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
+            </div>
+            <span className="text-xs font-bold">{doneCount}/{totalSteps}</span>
+          </div>
+        )}
+      </div>
+
+      {!generatedSteps ? (
+        <>
+          {/* Meal selection */}
+          <div>
+            <h2 className="text-sm font-extrabold mb-3">🍽️ Selecione os pratos para preparar:</h2>
+            <div className="space-y-2">
+              {allMeals.map((meal) => {
+                const isSelected = selectedMeals.has(meal.title);
+                return (
+                  <button
+                    key={meal.title}
+                    onClick={() => toggleMeal(meal.title)}
+                    className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all duration-200 ${
+                      isSelected ? "border-primary bg-nutri-green-light" : "bg-card hover:shadow-sm"
+                    }`}
+                  >
+                    <div
+                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-all duration-200 ${
+                        isSelected ? "border-primary bg-primary" : "border-muted-foreground/30"
+                      }`}
+                    >
+                      {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+                    </div>
+                    <span className="text-xl">{meal.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold truncate">{meal.title}</p>
+                      <p className="text-[10px] text-muted-foreground">{meal.ingredients.slice(0, 3).join(", ")}...</p>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
-          <span className="text-xs font-bold">{doneCount}/{steps.length}</span>
-        </div>
-      </div>
 
-      {/* Steps */}
-      <div className="space-y-3">
-        {steps.map((step) => (
+          {/* Generate button */}
           <button
-            key={step.id}
-            onClick={() => toggleStep(step.id)}
-            className={`w-full rounded-xl border p-4 text-left transition-all duration-200 ${
-              step.done
-                ? "border-nutri-success/30 bg-nutri-green-light"
-                : "bg-card hover:shadow-sm"
+            onClick={generateSteps}
+            disabled={selectedMeals.size === 0}
+            className={`flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold transition-all duration-200 ${
+              selectedMeals.size > 0
+                ? "bg-primary text-primary-foreground shadow-md hover:opacity-90"
+                : "bg-muted text-muted-foreground cursor-not-allowed"
             }`}
           >
-            <div className="flex items-start gap-3">
-              <div className="mt-0.5 flex flex-col items-center gap-1">
-                <div
-                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all duration-200 ${
-                    step.done
-                      ? "border-nutri-success bg-nutri-success text-primary-foreground"
-                      : "border-primary text-primary"
-                  }`}
-                >
-                  {step.done ? <Check className="h-4 w-4" /> : step.order}
-                </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3
-                  className={`text-sm font-bold leading-tight transition-all duration-200 ${
-                    step.done ? "line-through opacity-50" : ""
-                  }`}
-                >
-                  {step.title}
-                </h3>
-                <div className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                  <Clock className="h-3 w-3" />
-                  {step.duration}
-                </div>
-                {step.tip && !step.done && (
-                  <div className="mt-2 flex items-start gap-1.5 rounded-lg bg-nutri-orange-light px-3 py-2 text-xs">
-                    <Lightbulb className="h-3.5 w-3.5 mt-0.5 shrink-0 text-accent" />
-                    <span className="text-foreground/80">{step.tip}</span>
-                  </div>
-                )}
-              </div>
-            </div>
+            <Sparkles className="h-4 w-4" />
+            Gerar Passo a Passo ({selectedMeals.size} selecionados)
           </button>
-        ))}
-      </div>
+        </>
+      ) : (
+        <>
+          {/* Generated step-by-step */}
+          <div className="space-y-3">
+            {generatedSteps.map((step, i) => (
+              <button
+                key={i}
+                onClick={() => toggleStep(i)}
+                className={`w-full rounded-xl border p-4 text-left transition-all duration-200 ${
+                  step.done ? "border-nutri-success/30 bg-nutri-green-light" : "bg-card hover:shadow-sm"
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all duration-200 ${
+                      step.done
+                        ? "border-nutri-success bg-nutri-success text-primary-foreground"
+                        : "border-primary text-primary"
+                    }`}
+                  >
+                    {step.done ? <Check className="h-4 w-4" /> : i + 1}
+                  </div>
+                  <p className={`text-sm font-semibold leading-tight transition-all duration-200 ${step.done ? "line-through opacity-50" : ""}`}>
+                    {step.step.replace(/^\d+\.\s*/, "")}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </div>
 
-      {doneCount === steps.length && (
-        <div className="rounded-xl bg-nutri-green-light p-5 text-center animate-in fade-in zoom-in duration-300">
-          <span className="text-3xl">🎉</span>
-          <h3 className="mt-2 text-lg font-extrabold text-primary">Parabéns!</h3>
-          <p className="text-sm text-muted-foreground">Sua semana de refeições está pronta!</p>
-        </div>
+          {/* Back button */}
+          <button
+            onClick={() => { setGeneratedSteps(null); setSelectedMeals(new Set()); }}
+            className="flex w-full items-center justify-center gap-2 rounded-xl border bg-card py-3 text-sm font-bold text-primary transition-colors hover:bg-secondary"
+          >
+            ← Selecionar outros pratos
+          </button>
+
+          {doneCount === totalSteps && (
+            <div className="rounded-xl bg-nutri-green-light p-5 text-center animate-in fade-in zoom-in duration-300">
+              <span className="text-3xl">🎉</span>
+              <h3 className="mt-2 text-lg font-extrabold text-primary">Parabéns!</h3>
+              <p className="text-sm text-muted-foreground">Sua semana de refeições está pronta!</p>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

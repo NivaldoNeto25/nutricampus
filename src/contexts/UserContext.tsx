@@ -1,8 +1,10 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { weekPlan } from "@/data/mockData";
+import { createContext, useContext, useState, useEffect, ReactNode, useMemo } from "react";
+import { menusByGoal, DayPlan } from "@/data/mockData";
 
 export interface UserProfile {
   name: string;
+  weight: number;
+  height: number;
   goal: string;
   weeklyRoutine: string;
   trainingDays: string[];
@@ -23,12 +25,17 @@ interface MealCompletion {
   [dayIndex: number]: boolean[];
 }
 
+export interface UserProgress {
+  xp: number;
+  streak: number;
+  badges: Badge[];
+}
+
 interface UserState {
   profile: UserProfile | null;
   onboardingComplete: boolean;
   mealCompletions: MealCompletion;
-  streak: number;
-  badges: Badge[];
+  progress: UserProgress;
 }
 
 interface UserContextType extends UserState {
@@ -37,14 +44,21 @@ interface UserContextType extends UserState {
   toggleMealCompletion: (dayIndex: number, mealIndex: number) => void;
   getWeeklyProgress: () => number;
   getTodayProgress: () => number;
+  currentMenu: DayPlan[];
+  // Expose flat for backward compat
+  streak: number;
+  badges: Badge[];
 }
+
+const XP_PER_MEAL = 15;
+const XP_BONUS_ALL_DAY = 50;
 
 const defaultBadges: Badge[] = [
   { id: "b1", title: "Primeiro Passo", description: "Complete o onboarding", emoji: "🌱", unlocked: false },
   { id: "b2", title: "Dia Perfeito", description: "Complete todas as refeições de um dia", emoji: "⭐", unlocked: false },
   { id: "b3", title: "Mestre do Meal Prep", description: "Complete todo o guia de preparo", emoji: "👨‍🍳", unlocked: false },
   { id: "b4", title: "Sobrevivente da Semana", description: "Siga o plano por 5 dias seguidos", emoji: "🏆", unlocked: false },
-  { id: "b5", title: "Sobrevivente de Provas", description: "Mantenha o streak durante a semana", emoji: "📚", unlocked: false },
+  { id: "b5", title: "Centurião", description: "Acumule 100 XP", emoji: "💯", unlocked: false },
   { id: "b6", title: "Streak de 7 dias", description: "7 dias seguidos no plano", emoji: "🔥", unlocked: false },
 ];
 
@@ -59,8 +73,7 @@ function loadState(): UserState {
     profile: null,
     onboardingComplete: false,
     mealCompletions: {},
-    streak: 3, // mock: user already has 3-day streak
-    badges: defaultBadges,
+    progress: { xp: 0, streak: 3, badges: defaultBadges },
   };
 }
 
@@ -73,12 +86,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
+  const currentMenu = useMemo(() => {
+    if (!state.profile?.goal) return menusByGoal["Mais energia"];
+    return menusByGoal[state.profile.goal] || menusByGoal["Mais energia"];
+  }, [state.profile?.goal]);
+
   const completeOnboarding = (profile: UserProfile) => {
     setState((prev) => {
-      const badges = prev.badges.map((b) =>
+      const badges = prev.progress.badges.map((b) =>
         b.id === "b1" ? { ...b, unlocked: true, unlockedAt: new Date().toISOString() } : b
       );
-      return { ...prev, profile, onboardingComplete: true, badges };
+      return { ...prev, profile, onboardingComplete: true, progress: { ...prev.progress, badges } };
     });
   };
 
@@ -88,25 +106,31 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const toggleMealCompletion = (dayIndex: number, mealIndex: number) => {
     setState((prev) => {
-      const dayMeals = prev.mealCompletions[dayIndex] || weekPlan[dayIndex].meals.map(() => false);
+      const dayMeals = prev.mealCompletions[dayIndex] || currentMenu[dayIndex].meals.map(() => false);
       const updated = [...dayMeals];
-      updated[mealIndex] = !updated[mealIndex];
+      const wasComplete = updated[mealIndex];
+      updated[mealIndex] = !wasComplete;
 
       const newCompletions = { ...prev.mealCompletions, [dayIndex]: updated };
 
-      // Check badges
-      let badges = [...prev.badges];
+      let xp = prev.progress.xp + (wasComplete ? -XP_PER_MEAL : XP_PER_MEAL);
+      let badges = [...prev.progress.badges];
+      let streak = prev.progress.streak;
+
       const allDayDone = updated.every(Boolean);
-      if (allDayDone) {
+      if (allDayDone && !wasComplete) {
+        xp += XP_BONUS_ALL_DAY;
+        streak = Math.min(streak + 1, 30);
         badges = badges.map((b) =>
           b.id === "b2" && !b.unlocked ? { ...b, unlocked: true, unlockedAt: new Date().toISOString() } : b
         );
       }
 
-      // Count streak
-      let streak = prev.streak;
-      if (allDayDone) streak = Math.min(streak + 1, 30);
-
+      if (xp >= 100) {
+        badges = badges.map((b) =>
+          b.id === "b5" && !b.unlocked ? { ...b, unlocked: true, unlockedAt: new Date().toISOString() } : b
+        );
+      }
       if (streak >= 5) {
         badges = badges.map((b) =>
           b.id === "b4" && !b.unlocked ? { ...b, unlocked: true, unlockedAt: new Date().toISOString() } : b
@@ -118,12 +142,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
         );
       }
 
-      return { ...prev, mealCompletions: newCompletions, badges, streak };
+      return {
+        ...prev,
+        mealCompletions: newCompletions,
+        progress: { ...prev.progress, xp: Math.max(0, xp), badges, streak },
+      };
     });
   };
 
   const getWeeklyProgress = () => {
-    const totalMeals = weekPlan.reduce((sum, day) => sum + day.meals.length, 0);
+    const totalMeals = currentMenu.reduce((sum, day) => sum + day.meals.length, 0);
     let completed = 0;
     Object.values(state.mealCompletions).forEach((dayMeals) => {
       completed += (dayMeals as boolean[]).filter(Boolean).length;
@@ -135,7 +163,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const today = new Date().getDay();
     const dayIndex = today === 0 ? 6 : today - 1;
     const dayMeals = state.mealCompletions[dayIndex] || [];
-    const total = weekPlan[dayIndex].meals.length;
+    const total = currentMenu[dayIndex]?.meals.length || 0;
     const done = (dayMeals as boolean[]).filter(Boolean).length;
     return total > 0 ? Math.round((done / total) * 100) : 0;
   };
@@ -149,6 +177,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
         toggleMealCompletion,
         getWeeklyProgress,
         getTodayProgress,
+        currentMenu,
+        streak: state.progress.streak,
+        badges: state.progress.badges,
       }}
     >
       {children}
