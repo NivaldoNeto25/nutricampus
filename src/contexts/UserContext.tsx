@@ -65,16 +65,24 @@ const defaultBadges: Badge[] = [
 const STORAGE_KEY = "nutricampus_user";
 
 function loadState(): UserState {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
-  } catch {}
-  return {
+  const defaults: UserState = {
     profile: null,
     onboardingComplete: false,
     mealCompletions: {},
     progress: { xp: 0, streak: 3, badges: defaultBadges },
   };
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      return {
+        ...defaults,
+        ...parsed,
+        progress: { ...defaults.progress, ...(parsed.progress || {}) },
+      };
+    }
+  } catch {}
+  return defaults;
 }
 
 const UserContext = createContext<UserContextType | null>(null);
