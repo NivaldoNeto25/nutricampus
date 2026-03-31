@@ -11,7 +11,6 @@ const categoryEmojis: Record<Category, string> = {
 };
 
 const ingredientCategory: Record<string, Category> = {
-  // Hortifruti
   "Banana": "Hortifruti", "Morango": "Hortifruti", "Maçã": "Hortifruti", "Manga": "Hortifruti",
   "Mamão": "Hortifruti", "Laranja": "Hortifruti", "Limão": "Hortifruti", "Uva": "Hortifruti",
   "Pera": "Hortifruti", "Abacate": "Hortifruti", "Tomate": "Hortifruti", "Cebola": "Hortifruti",
@@ -21,8 +20,8 @@ const ingredientCategory: Record<string, Category> = {
   "Manjericão": "Hortifruti", "Salsinha": "Hortifruti", "Mirtilo": "Hortifruti", "Blueberry": "Hortifruti",
   "Beterraba": "Hortifruti", "Alface romana": "Hortifruti", "Maracujá": "Hortifruti",
   "Uva-passa": "Hortifruti", "Damasco": "Hortifruti", "Cranberry": "Hortifruti",
-  "Tâmaras": "Hortifruti",
-  // Proteínas
+  "Tâmaras": "Hortifruti", "Rúcula": "Hortifruti", "Repolho": "Hortifruti", "Mandioquinha": "Hortifruti",
+  "Claras de ovo": "Proteínas",
   "Peito de frango": "Proteínas", "Peito de frango (300g)": "Proteínas",
   "Peito de frango (250g)": "Proteínas", "Peito de frango (200g)": "Proteínas",
   "Carne moída": "Proteínas", "Carne moída (250g)": "Proteínas", "Carne moída (200g)": "Proteínas",
@@ -38,7 +37,6 @@ const ingredientCategory: Record<string, Category> = {
   "Coxa de frango": "Proteínas", "Linguiça de frango": "Proteínas",
   "Parmesão": "Proteínas", "Cogumelos": "Proteínas",
   "Banana (2)": "Hortifruti",
-  // Grãos/Mercearia
   "Arroz": "Grãos/Mercearia", "Arroz integral": "Grãos/Mercearia", "Arroz arbóreo": "Grãos/Mercearia",
   "Feijão": "Grãos/Mercearia", "Feijão preto": "Grãos/Mercearia",
   "Macarrão integral": "Grãos/Mercearia", "Aveia": "Grãos/Mercearia",
@@ -51,16 +49,18 @@ const ingredientCategory: Record<string, Category> = {
   "Castanha de caju": "Grãos/Mercearia", "Castanha-do-pará": "Grãos/Mercearia",
   "Nozes": "Grãos/Mercearia", "Amendoim": "Grãos/Mercearia", "Castanhas": "Grãos/Mercearia",
   "Canela": "Grãos/Mercearia", "Sal": "Grãos/Mercearia", "Pimenta": "Grãos/Mercearia",
-  "Curry": "Grãos/Mercearia", "Cúrcuma": "Grãos/Mercearia",
-  "Molho de tomate": "Grãos/Mercearia", "Molho Caesar light": "Grãos/Mercearia",
+  "Curry": "Grãos/Mercearia", "Cúrcuma": "Grãos/Mercearia", "Orégano": "Grãos/Mercearia",
+  "Molho de tomate": "Grãos/Mercearia", "Molho Caesar light": "Grãos/Mercearia", "Molho shoyu": "Grãos/Mercearia",
   "Leite de coco": "Grãos/Mercearia", "Caldo de legumes": "Grãos/Mercearia",
   "Geleia de frutas": "Grãos/Mercearia", "Maionese light": "Grãos/Mercearia",
-  "Chocolate 70%": "Grãos/Mercearia", "Cacau": "Grãos/Mercearia",
+  "Chocolate 70%": "Grãos/Mercearia", "Cacau": "Grãos/Mercearia", "Cacau em pó": "Grãos/Mercearia",
   "Polpa de açaí": "Grãos/Mercearia", "Água de coco": "Grãos/Mercearia",
   "Chia": "Grãos/Mercearia", "Farinha integral": "Grãos/Mercearia",
   "Croutons integrais": "Grãos/Mercearia", "Massa de panqueca integral": "Grãos/Mercearia",
-  "Sopa instantânea": "Grãos/Mercearia", "Milho": "Grãos/Mercearia",
-  "Ervilha": "Grãos/Mercearia", "Salada": "Hortifruti",
+  "Massa integral": "Grãos/Mercearia", "Polvilho": "Grãos/Mercearia",
+  "Sopa instantânea": "Grãos/Mercearia", "Milho": "Grãos/Mercearia", "Milho de pipoca": "Grãos/Mercearia",
+  "Ervilha": "Grãos/Mercearia", "Salada": "Hortifruti", "Tahine": "Grãos/Mercearia", "Salsa": "Hortifruti",
+  "Queijo parmesão": "Proteínas",
 };
 
 function categorize(name: string): Category {
@@ -68,24 +68,24 @@ function categorize(name: string): Category {
 }
 
 const ShoppingTab = () => {
-  const { currentMenu } = useUser();
+  const { currentMenu, getEffectiveMeal } = useUser();
 
-  // Extract unique ingredients from current menu
   const allIngredients = useMemo(() => {
     const map = new Map<string, Category>();
-    currentMenu.forEach((day) =>
-      day.meals.forEach((meal) =>
+    currentMenu.forEach((day, di) =>
+      day.meals.forEach((_, mi) => {
+        const meal = getEffectiveMeal(di, mi);
         meal.ingredients.forEach((ing) => {
           if (!map.has(ing)) map.set(ing, categorize(ing));
-        })
-      )
+        });
+      })
     );
     return Array.from(map.entries()).map(([name, cat], i) => ({
       id: `ing-${i}`,
       name,
       category: cat,
     }));
-  }, [currentMenu]);
+  }, [currentMenu, getEffectiveMeal]);
 
   const [checked, setChecked] = useState<Set<string>>(new Set());
 
@@ -100,28 +100,23 @@ const ShoppingTab = () => {
 
   const categories: Category[] = ["Hortifruti", "Proteínas", "Grãos/Mercearia"];
   const checkedCount = checked.size;
-  const progress = allIngredients.length > 0 ? Math.round((checkedCount / allIngredients.length) * 100) : 0;
+  const progressVal = allIngredients.length > 0 ? Math.round((checkedCount / allIngredients.length) * 100) : 0;
 
   return (
     <div className="space-y-5 pb-4">
-      {/* Header */}
       <div className="rounded-2xl bg-accent p-5 text-accent-foreground">
         <div className="flex items-center gap-2">
           <ShoppingCart className="h-5 w-5" />
           <h1 className="text-xl font-extrabold">Lista de Compras</h1>
         </div>
         <p className="mt-1 text-sm opacity-80">
-          {checkedCount}/{allIngredients.length} itens • {progress}% concluído
+          {checkedCount}/{allIngredients.length} itens • {progressVal}% concluído
         </p>
         <div className="mt-3 h-2 rounded-full bg-accent-foreground/20">
-          <div
-            className="h-2 rounded-full bg-accent-foreground transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
+          <div className="h-2 rounded-full bg-accent-foreground transition-all duration-500" style={{ width: `${progressVal}%` }} />
         </div>
       </div>
 
-      {/* Categories */}
       {categories.map((cat) => {
         const catItems = allIngredients.filter((i) => i.category === cat);
         if (catItems.length === 0) return null;
@@ -141,25 +136,15 @@ const ShoppingTab = () => {
                     key={item.id}
                     onClick={() => toggleItem(item.id)}
                     className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 transition-all duration-200 ${
-                      isChecked
-                        ? "border-nutri-success/30 bg-nutri-green-light"
-                        : "bg-card hover:shadow-sm"
+                      isChecked ? "border-nutri-success/30 bg-nutri-green-light" : "bg-card hover:shadow-sm"
                     }`}
                   >
-                    <div
-                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-all duration-200 ${
-                        isChecked
-                          ? "border-nutri-success bg-nutri-success"
-                          : "border-muted-foreground/30"
-                      }`}
-                    >
+                    <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-all duration-200 ${
+                      isChecked ? "border-nutri-success bg-nutri-success" : "border-muted-foreground/30"
+                    }`}>
                       {isChecked && <Check className="h-3 w-3 text-primary-foreground" />}
                     </div>
-                    <span
-                      className={`flex-1 text-left text-sm font-semibold transition-all duration-200 ${
-                        isChecked ? "line-through opacity-50" : ""
-                      }`}
-                    >
+                    <span className={`flex-1 text-left text-sm font-semibold transition-all duration-200 ${isChecked ? "line-through opacity-50" : ""}`}>
                       {item.name}
                     </span>
                   </button>

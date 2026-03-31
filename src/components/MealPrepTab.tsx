@@ -1,24 +1,25 @@
 import { useState, useMemo } from "react";
 import { useUser } from "@/contexts/UserContext";
-import { ChefHat, Check, Clock, Lightbulb, Sparkles } from "lucide-react";
+import { ChefHat, Check, Sparkles } from "lucide-react";
 
 const MealPrepTab = () => {
-  const { currentMenu } = useUser();
-  
-  // Flatten all unique meals from the week
+  const { currentMenu, getEffectiveMeal } = useUser();
+
+  // Flatten all unique meals from the week (respecting overrides)
   const allMeals = useMemo(() => {
     const seen = new Set<string>();
-    const meals: { title: string; emoji: string; ingredients: string[]; prepSteps: string[] }[] = [];
-    currentMenu.forEach((day) =>
-      day.meals.forEach((m) => {
+    const meals: { title: string; emoji: string; ingredients: string[]; prepSteps: string[]; dayIndex: number; mealIndex: number }[] = [];
+    currentMenu.forEach((day, di) =>
+      day.meals.forEach((_, mi) => {
+        const m = getEffectiveMeal(di, mi);
         if (!seen.has(m.title) && m.prepSteps.length > 0) {
           seen.add(m.title);
-          meals.push({ title: m.title, emoji: m.emoji, ingredients: m.ingredients, prepSteps: m.prepSteps });
+          meals.push({ title: m.title, emoji: m.emoji, ingredients: m.ingredients, prepSteps: m.prepSteps, dayIndex: di, mealIndex: mi });
         }
       })
     );
     return meals;
-  }, [currentMenu]);
+  }, [currentMenu, getEffectiveMeal]);
 
   const [selectedMeals, setSelectedMeals] = useState<Set<string>>(new Set());
   const [generatedSteps, setGeneratedSteps] = useState<{ step: string; done: boolean }[] | null>(null);
@@ -38,7 +39,7 @@ const MealPrepTab = () => {
     let stepNum = 1;
     const selected = allMeals.filter((m) => selectedMeals.has(m.title));
 
-    // Group by similarity in prep
+    // Consolidate steps from selected meals
     selected.forEach((meal) => {
       meal.prepSteps.forEach((s) => {
         steps.push(`${stepNum}. [${meal.emoji} ${meal.title}] ${s}`);
@@ -46,7 +47,6 @@ const MealPrepTab = () => {
       });
     });
 
-    // Add final step
     steps.push(`${stepNum}. Monte os potes, etiquete com o dia da semana e guarde na geladeira/freezer 📦`);
 
     setGeneratedSteps(steps.map((s) => ({ step: s, done: false })));
@@ -60,11 +60,10 @@ const MealPrepTab = () => {
 
   const doneCount = generatedSteps?.filter((s) => s.done).length || 0;
   const totalSteps = generatedSteps?.length || 0;
-  const progress = totalSteps > 0 ? Math.round((doneCount / totalSteps) * 100) : 0;
+  const progressVal = totalSteps > 0 ? Math.round((doneCount / totalSteps) * 100) : 0;
 
   return (
     <div className="space-y-5 pb-4">
-      {/* Header */}
       <div className="rounded-2xl bg-primary p-5 text-primary-foreground">
         <div className="flex items-center gap-2">
           <ChefHat className="h-5 w-5" />
@@ -75,10 +74,7 @@ const MealPrepTab = () => {
           <div className="mt-3 flex items-center gap-3">
             <div className="flex-1">
               <div className="h-2 rounded-full bg-primary-foreground/20">
-                <div
-                  className="h-2 rounded-full bg-accent transition-all duration-500"
-                  style={{ width: `${progress}%` }}
-                />
+                <div className="h-2 rounded-full bg-accent transition-all duration-500" style={{ width: `${progressVal}%` }} />
               </div>
             </div>
             <span className="text-xs font-bold">{doneCount}/{totalSteps}</span>
@@ -88,7 +84,6 @@ const MealPrepTab = () => {
 
       {!generatedSteps ? (
         <>
-          {/* Meal selection */}
           <div>
             <h2 className="text-sm font-extrabold mb-3">🍽️ Selecione os pratos para preparar:</h2>
             <div className="space-y-2">
@@ -102,11 +97,9 @@ const MealPrepTab = () => {
                       isSelected ? "border-primary bg-nutri-green-light" : "bg-card hover:shadow-sm"
                     }`}
                   >
-                    <div
-                      className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-all duration-200 ${
-                        isSelected ? "border-primary bg-primary" : "border-muted-foreground/30"
-                      }`}
-                    >
+                    <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-all duration-200 ${
+                      isSelected ? "border-primary bg-primary" : "border-muted-foreground/30"
+                    }`}>
                       {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
                     </div>
                     <span className="text-xl">{meal.emoji}</span>
@@ -120,7 +113,6 @@ const MealPrepTab = () => {
             </div>
           </div>
 
-          {/* Generate button */}
           <button
             onClick={generateSteps}
             disabled={selectedMeals.size === 0}
@@ -136,7 +128,6 @@ const MealPrepTab = () => {
         </>
       ) : (
         <>
-          {/* Generated step-by-step */}
           <div className="space-y-3">
             {generatedSteps.map((step, i) => (
               <button
@@ -147,13 +138,9 @@ const MealPrepTab = () => {
                 }`}
               >
                 <div className="flex items-start gap-3">
-                  <div
-                    className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all duration-200 ${
-                      step.done
-                        ? "border-nutri-success bg-nutri-success text-primary-foreground"
-                        : "border-primary text-primary"
-                    }`}
-                  >
+                  <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all duration-200 ${
+                    step.done ? "border-nutri-success bg-nutri-success text-primary-foreground" : "border-primary text-primary"
+                  }`}>
                     {step.done ? <Check className="h-4 w-4" /> : i + 1}
                   </div>
                   <p className={`text-sm font-semibold leading-tight transition-all duration-200 ${step.done ? "line-through opacity-50" : ""}`}>
@@ -164,7 +151,6 @@ const MealPrepTab = () => {
             ))}
           </div>
 
-          {/* Back button */}
           <button
             onClick={() => { setGeneratedSteps(null); setSelectedMeals(new Set()); }}
             className="flex w-full items-center justify-center gap-2 rounded-xl border bg-card py-3 text-sm font-bold text-primary transition-colors hover:bg-secondary"

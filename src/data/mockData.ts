@@ -25,6 +25,43 @@ export interface Tip {
   tag: string;
 }
 
+// ─── POOL DE SUBSTITUIÇÕES POR TIPO DE REFEIÇÃO ───
+export const substitutionPool: Record<MealType, Meal[]> = {
+  "Café da Manhã": [
+    { type: "Café da Manhã", title: "Crepioca de queijo e orégano", description: "Sem glúten e rápida", emoji: "🫓", calories: 280, ingredients: ["Ovos", "Goma de tapioca", "Queijo branco", "Orégano"], prepSteps: ["Misture ovo com goma", "Faça na frigideira", "Recheie com queijo e orégano"] },
+    { type: "Café da Manhã", title: "Mingau de aveia com canela e maçã", description: "Aquece e sacia", emoji: "🥣", calories: 300, ingredients: ["Aveia", "Leite", "Maçã", "Canela", "Mel"], prepSteps: ["Cozinhe aveia com leite", "Adicione maçã picada e canela"] },
+    { type: "Café da Manhã", title: "Smoothie bowl de açaí", description: "Energia tropical", emoji: "🫐", calories: 350, ingredients: ["Polpa de açaí", "Banana", "Granola", "Mel"], prepSteps: ["Bata açaí com banana", "Cubra com granola e mel"] },
+    { type: "Café da Manhã", title: "Torrada francesa integral", description: "Clássico reinventado", emoji: "🍞", calories: 320, ingredients: ["Pão integral", "Ovos", "Leite", "Canela"], prepSteps: ["Misture ovo com leite e canela", "Passe o pão na mistura", "Doure na frigideira"] },
+    { type: "Café da Manhã", title: "Omelete de claras com espinafre", description: "Muito proteína, pouca gordura", emoji: "🍳", calories: 200, ingredients: ["Claras de ovo", "Espinafre", "Tomate", "Sal"], prepSteps: ["Bata as claras", "Adicione espinafre e tomate", "Cozinhe na frigideira"] },
+  ],
+  "Lanche da Manhã": [
+    { type: "Lanche da Manhã", title: "Bolinho de banana com aveia", description: "Doce natural e saudável", emoji: "🍌", calories: 160, ingredients: ["Banana", "Aveia", "Canela"], prepSteps: ["Amasse a banana", "Misture com aveia e canela", "Asse por 15min"] },
+    { type: "Lanche da Manhã", title: "Cottage com mel e nozes", description: "Proteína e gordura boa", emoji: "🧀", calories: 190, ingredients: ["Cottage", "Mel", "Nozes"], prepSteps: ["Sirva cottage com mel e nozes por cima"] },
+    { type: "Lanche da Manhã", title: "Chips de batata-doce", description: "Crocante e saudável", emoji: "🍠", calories: 150, ingredients: ["Batata-doce", "Azeite", "Sal"], prepSteps: ["Fatie finamente a batata-doce", "Tempere com azeite e sal", "Asse até crocante"] },
+    { type: "Lanche da Manhã", title: "Wrap de banana com pasta de amendoim", description: "Energia rápida", emoji: "🌯", calories: 220, ingredients: ["Tortilla integral", "Banana", "Pasta de amendoim"], prepSteps: ["Espalhe pasta de amendoim na tortilla", "Adicione banana e enrole"] },
+  ],
+  "Almoço": [
+    { type: "Almoço", title: "Bowl de quinoa com legumes assados", description: "Nutritivo e colorido", emoji: "🥗", calories: 450, ingredients: ["Quinoa", "Abobrinha", "Cenoura", "Tomate", "Azeite"], prepSteps: ["Cozinhe a quinoa", "Asse os legumes", "Monte o bowl"] },
+    { type: "Almoço", title: "Frango ao limão com arroz e salada", description: "Leve e proteico", emoji: "🍋", calories: 480, ingredients: ["Peito de frango", "Limão", "Arroz", "Alface", "Tomate"], prepSteps: ["Marine o frango no limão", "Grelhe o frango", "Sirva com arroz e salada"] },
+    { type: "Almoço", title: "Escondidinho de frango com purê", description: "Comfort food fitness", emoji: "🍗", calories: 520, ingredients: ["Peito de frango", "Batata-doce", "Requeijão light", "Cebola"], prepSteps: ["Desfie o frango", "Faça o purê de batata-doce", "Monte e gratine"] },
+    { type: "Almoço", title: "Carne moída com purê de mandioquinha", description: "Sabor caseiro", emoji: "🥩", calories: 500, ingredients: ["Carne moída", "Mandioquinha", "Cebola", "Alho", "Salsa"], prepSteps: ["Refogue a carne", "Cozinhe e amasse a mandioquinha", "Sirva juntos"] },
+    { type: "Almoço", title: "Yakisoba de frango com legumes", description: "Inspiração oriental", emoji: "🍜", calories: 490, ingredients: ["Macarrão integral", "Peito de frango", "Cenoura", "Repolho", "Molho shoyu"], prepSteps: ["Cozinhe o macarrão", "Salteie frango e legumes", "Misture com molho shoyu"] },
+  ],
+  "Lanche da Tarde": [
+    { type: "Lanche da Tarde", title: "Pipoca com azeite e orégano", description: "Leve e saborosa", emoji: "🍿", calories: 120, ingredients: ["Milho de pipoca", "Azeite", "Orégano", "Sal"], prepSteps: ["Estoure o milho com azeite", "Tempere com orégano e sal"] },
+    { type: "Lanche da Tarde", title: "Pão de queijo fit", description: "Sem glúten e proteico", emoji: "🧀", calories: 180, ingredients: ["Polvilho", "Ovo", "Queijo", "Azeite"], prepSteps: ["Misture todos os ingredientes", "Asse por 20min"] },
+    { type: "Lanche da Tarde", title: "Mousse de abacate com cacau", description: "Sobremesa saudável", emoji: "🥑", calories: 200, ingredients: ["Abacate", "Cacau em pó", "Mel", "Leite"], prepSteps: ["Bata tudo no processador", "Leve à geladeira por 30min"] },
+    { type: "Lanche da Tarde", title: "Palitos de cenoura com homus", description: "Crocante e nutritivo", emoji: "🥕", calories: 150, ingredients: ["Cenoura", "Grão-de-bico", "Tahine", "Limão", "Alho"], prepSteps: ["Corte cenoura em palitos", "Bata grão-de-bico com tahine, limão e alho"] },
+  ],
+  "Jantar": [
+    { type: "Jantar", title: "Sopa de lentilha com legumes", description: "Ferro e fibras", emoji: "🥣", calories: 320, ingredients: ["Lentilha", "Cenoura", "Batata", "Cebola", "Alho"], prepSteps: ["Refogue cebola e alho", "Adicione lentilha e legumes", "Cozinhe até amaciar"] },
+    { type: "Jantar", title: "Pizza integral de frango com rúcula", description: "Pizza sem culpa", emoji: "🍕", calories: 400, ingredients: ["Massa integral", "Peito de frango", "Rúcula", "Tomate", "Queijo branco"], prepSteps: ["Monte a pizza com os ingredientes", "Asse por 15min", "Adicione rúcula fresca"] },
+    { type: "Jantar", title: "Caldo verde fitness", description: "Reconfortante e leve", emoji: "🥬", calories: 280, ingredients: ["Batata", "Couve", "Linguiça de frango", "Cebola", "Alho"], prepSteps: ["Cozinhe batata e bata", "Refogue couve", "Adicione linguiça fatiada"] },
+    { type: "Jantar", title: "Frango desfiado com purê de abóbora", description: "Comfort food light", emoji: "🎃", calories: 350, ingredients: ["Peito de frango", "Abóbora", "Cebola", "Alho", "Azeite"], prepSteps: ["Desfie o frango", "Cozinhe e amasse a abóbora", "Sirva juntos"] },
+    { type: "Jantar", title: "Wrap de carne com guacamole", description: "Mexicano saudável", emoji: "🌯", calories: 420, ingredients: ["Tortilla integral", "Carne moída", "Abacate", "Tomate", "Limão"], prepSteps: ["Refogue a carne", "Prepare guacamole", "Monte o wrap"] },
+  ],
+};
+
 // ─── CARDÁPIO: ECONOMIZAR TEMPO ───
 const menuEconomizarTempo: DayPlan[] = [
   {
@@ -253,50 +290,15 @@ export const menusByGoal: Record<string, DayPlan[]> = {
   "Ganhar massa": menuGanharMassa,
 };
 
-// Default export for backward compat
 export const weekPlan = menuMaisEnergia;
 
 export const tips: Tip[] = [
-  {
-    id: "t1",
-    title: "Snacks que não estragam na mochila",
-    summary: "Castanhas, barrinhas de cereal, frutas secas e biscoitos integrais são opções práticas que sobrevivem horas na mochila sem refrigeração.",
-    emoji: "🎒",
-    tag: "Praticidade",
-  },
-  {
-    id: "t2",
-    title: "Opções baratas na cantina",
-    summary: "Prefira o PF ao invés de lanches processados. Sopas, saladas e sucos naturais são mais baratos e nutritivos.",
-    emoji: "🏫",
-    tag: "Economia",
-  },
-  {
-    id: "t3",
-    title: "Como evitar sono nas aulas",
-    summary: "Evite refeições pesadas antes da aula. Prefira lanches leves com proteína. Beba água constantemente. Café? Só até 14h!",
-    emoji: "😴",
-    tag: "Foco",
-  },
-  {
-    id: "t4",
-    title: "Esqueceu a marmita?",
-    summary: "Compre um iogurte proteico + banana na cantina. Ou um PF simples com bastante salada. Evite salgados fritos!",
-    emoji: "🆘",
-    tag: "Plano B",
-  },
-  {
-    id: "t5",
-    title: "Hidratação salva o foco",
-    summary: "Leve sempre uma garrafa de água. A desidratação reduz em até 25% sua capacidade cognitiva. Beba pelo menos 2L/dia.",
-    emoji: "💧",
-    tag: "Saúde",
-  },
-  {
-    id: "t6",
-    title: "Substituições rápidas de emergência",
-    summary: "Sem frango? Use ovo. Sem arroz? Use batata ou macarrão. Sem salada? Coma uma fruta. O importante é manter a estrutura proteína + carb + fibra.",
-    emoji: "🔄",
-    tag: "Plano B",
-  },
+  { id: "t1", title: "Snacks que não estragam na mochila", summary: "Castanhas, barrinhas de cereal, frutas secas e biscoitos integrais são opções práticas que sobrevivem horas na mochila sem refrigeração.", emoji: "🎒", tag: "Praticidade" },
+  { id: "t2", title: "Opções baratas na cantina", summary: "Prefira o PF ao invés de lanches processados. Sopas, saladas e sucos naturais são mais baratos e nutritivos.", emoji: "🏫", tag: "Economia" },
+  { id: "t3", title: "Como evitar sono nas aulas", summary: "Evite refeições pesadas antes da aula. Prefira lanches leves com proteína. Beba água constantemente. Café? Só até 14h!", emoji: "😴", tag: "Foco" },
+  { id: "t4", title: "Esqueceu a marmita?", summary: "Compre um iogurte proteico + banana na cantina. Ou um PF simples com bastante salada. Evite salgados fritos!", emoji: "🆘", tag: "Plano B" },
+  { id: "t5", title: "Hidratação salva o foco", summary: "Leve sempre uma garrafa de água. A desidratação reduz em até 25% sua capacidade cognitiva. Beba pelo menos 2L/dia.", emoji: "💧", tag: "Saúde" },
+  { id: "t6", title: "Substituições rápidas de emergência", summary: "Sem frango? Use ovo. Sem arroz? Use batata ou macarrão. Sem salada? Coma uma fruta. O importante é manter a estrutura proteína + carb + fibra.", emoji: "🔄", tag: "Plano B" },
+  { id: "t7", title: "Não pule o café da manhã!", summary: "Mesmo atrasado, leve um overnight oats ou barra de cereal. Pular o café reduz a concentração em até 30%.", emoji: "☀️", tag: "Foco" },
+  { id: "t8", title: "Congelando marmitas certas", summary: "Arroz, feijão e frango grelhado congelam bem por até 3 meses. Evite congelar saladas e ovos cozidos inteiros.", emoji: "❄️", tag: "Praticidade" },
 ];
