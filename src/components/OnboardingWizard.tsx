@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useUser, UserProfile } from "@/contexts/UserContext";
-import { ChevronRight, ChevronLeft, Sparkles } from "lucide-react";
+import { useUser, UserProfile, CookingSkill } from "@/contexts/UserContext";
+import { ChevronRight, ChevronLeft, UtensilsCrossed } from "lucide-react";
 
 const goals = [
   { label: "Mais energia", emoji: "⚡" },
@@ -30,6 +30,12 @@ const restrictionOptions = [
   "Frutos do mar", "Lactose", "Glúten", "Amendoim", "Carne vermelha", "Nenhuma",
 ];
 
+const cookingSkills: { label: CookingSkill; description: string; emoji: string }[] = [
+  { label: "Mínimo", description: "Quase nada, só montar", emoji: "🍽️" },
+  { label: "Básico", description: "Fritar ovo, cozinhar arroz", emoji: "🍳" },
+  { label: "Tranquilo", description: "Consigo seguir receitas", emoji: "👨‍🍳" },
+];
+
 const OnboardingWizard = () => {
   const { completeOnboarding } = useUser();
   const [step, setStep] = useState(0);
@@ -41,6 +47,7 @@ const OnboardingWizard = () => {
   const [training, setTraining] = useState<string[]>([]);
   const [preferences, setPreferences] = useState<string[]>([]);
   const [restrictions, setRestrictions] = useState<string[]>([]);
+  const [cookingSkill, setCookingSkill] = useState<CookingSkill | "">("");
 
   const toggleArray = (arr: string[], val: string, setter: (v: string[]) => void) => {
     setter(arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val]);
@@ -51,6 +58,7 @@ const OnboardingWizard = () => {
     if (step === 1) return !!goal;
     if (step === 2) return !!routine && training.length > 0;
     if (step === 3) return preferences.length > 0 && restrictions.length > 0;
+    if (step === 4) return !!cookingSkill;
     return true;
   };
 
@@ -64,11 +72,12 @@ const OnboardingWizard = () => {
       trainingDays: training,
       preferences,
       restrictions,
+      cookingSkill: cookingSkill as CookingSkill,
     };
     completeOnboarding(profile);
   };
 
-  const totalSteps = 4;
+  const totalSteps = 5;
 
   const steps = [
     // Step 0: Personal data
@@ -223,6 +232,32 @@ const OnboardingWizard = () => {
         </div>
       </div>
     </div>,
+
+    // Step 4: Cooking Skill
+    <div key="cooking" className="space-y-5">
+      <div className="text-center">
+        <span className="text-4xl">🧑‍🍳</span>
+        <h2 className="mt-2 text-lg font-extrabold">Quanto você cozinha?</h2>
+        <p className="text-sm text-muted-foreground">Sem julgamento, prometo.</p>
+      </div>
+      <div className="space-y-3">
+        {cookingSkills.map((s) => (
+          <button
+            key={s.label}
+            onClick={() => setCookingSkill(s.label)}
+            className={`flex w-full items-center gap-4 rounded-xl border p-4 transition-all duration-200 ${
+              cookingSkill === s.label ? "border-primary bg-nutri-green-light shadow-sm" : "bg-card hover:shadow-sm"
+            }`}
+          >
+            <span className="text-3xl">{s.emoji}</span>
+            <div className="text-left">
+              <p className="text-sm font-extrabold">{s.label}</p>
+              <p className="text-xs text-muted-foreground">{s.description}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>,
   ];
 
   return (
@@ -265,7 +300,7 @@ const OnboardingWizard = () => {
               <>Próximo <ChevronRight className="h-4 w-4" /></>
             ) : (
               <>
-                <Sparkles className="h-4 w-4" /> Começar!
+                <UtensilsCrossed className="h-4 w-4" /> Pronto, me alimente! 🍴
               </>
             )}
           </button>
