@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, ReactNode, useMemo, useCallback } from "react";
-import { menusByGoal, DayPlan, Meal, MealType, substitutionPool } from "@/data/mockData";
+import { getMenuForProfile, DayPlan, Meal, MealType, getSubstitution } from "@/data/mockData";
+
+export type CookingSkill = "Mínimo" | "Básico" | "Tranquilo";
 
 export interface UserProfile {
   name: string;
@@ -10,6 +12,7 @@ export interface UserProfile {
   trainingDays: string[];
   preferences: string[];
   restrictions: string[];
+  cookingSkill: CookingSkill;
 }
 
 export interface Badge {
@@ -37,11 +40,11 @@ interface UserState {
   onboardingComplete: boolean;
   mealCompletions: MealCompletion;
   progress: UserProgress;
-  menuOverrides: Record<string, Meal>; // key: "dayIndex-mealIndex"
+  menuOverrides: Record<string, Meal>;
 }
 
 interface UserContextType extends UserState {
-  profile: UserProfile | null; // alias for currentData
+  profile: UserProfile | null;
   completeOnboarding: (profile: UserProfile) => void;
   updateCurrentData: (partial: Partial<UserProfile>) => void;
   toggleMealCompletion: (dayIndex: number, mealIndex: number) => void;
@@ -83,9 +86,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<UserState>(getInitialState);
 
   const currentMenu = useMemo(() => {
-    if (!state.currentData?.goal) return menusByGoal["Mais energia"];
-    return menusByGoal[state.currentData.goal] || menusByGoal["Mais energia"];
-  }, [state.currentData?.goal]);
+    if (!state.currentData) return getMenuForProfile("Mais energia", "Básico");
+    return getMenuForProfile(state.currentData.goal, state.currentData.cookingSkill);
+  }, [state.currentData?.goal, state.currentData?.cookingSkill]);
 
   const getEffectiveMeal = useCallback((dayIndex: number, mealIndex: number): Meal => {
     const key = `${dayIndex}-${mealIndex}`;
@@ -117,12 +120,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const substituteMeal = (dayIndex: number, mealIndex: number) => {
     setState((prev) => {
       const currentMeal = getEffectiveMeal(dayIndex, mealIndex);
-      const mealType = currentMeal.type as MealType;
-      const pool = substitutionPool[mealType] || [];
-      // Pick a random meal from the pool that's different from the current
-      const candidates = pool.filter((m) => m.title !== currentMeal.title);
-      if (candidates.length === 0) return prev;
-      const newMeal = candidates[Math.floor(Math.random() * candidates.length)];
+      const skill = prev.currentData?.cookingSkill || "Básico";
+      const newMeal = getSubstitution(currentMeal.type as MealType, currentMeal.title, skill as CookingSkill);
+      if (!newMeal) return prev;
       const key = `${dayIndex}-${mealIndex}`;
       return { ...prev, menuOverrides: { ...prev.menuOverrides, [key]: newMeal } };
     });

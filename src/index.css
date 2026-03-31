@@ -49,6 +49,40 @@
     --nutri-orange-light: 28 90% 94%;
     --nutri-success: 142 71% 45%;
   }
+
+  .dark {
+    --background: 220 15% 10%;
+    --foreground: 60 10% 90%;
+
+    --card: 220 15% 14%;
+    --card-foreground: 60 10% 90%;
+
+    --popover: 220 15% 14%;
+    --popover-foreground: 60 10% 90%;
+
+    --primary: 152 55% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 12% 20%;
+    --secondary-foreground: 60 10% 85%;
+
+    --muted: 220 10% 18%;
+    --muted-foreground: 220 5% 55%;
+
+    --accent: 28 85% 55%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 12% 22%;
+    --input: 220 12% 22%;
+    --ring: 152 55% 45%;
+
+    --nutri-green-light: 152 30% 18%;
+    --nutri-orange-light: 28 40% 18%;
+    --nutri-success: 142 60% 40%;
+  }
 }
 
 @layer base {

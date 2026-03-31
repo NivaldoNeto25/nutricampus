@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useUser } from "@/contexts/UserContext";
-import { User, Flame, Zap, Target, Dumbbell, Heart, Ban, Scale, Ruler, Pencil, ArrowRight, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { useUser, CookingSkill } from "@/contexts/UserContext";
+import { User, Flame, Zap, Target, Dumbbell, Heart, Ban, Scale, Ruler, Pencil, ArrowRight, TrendingUp, TrendingDown, Minus, ChefHat } from "lucide-react";
 import {
   ChartContainer,
   ChartTooltip,
@@ -9,6 +9,7 @@ import {
 import { BarChart, Bar, XAxis, PieChart, Pie, Cell } from "recharts";
 
 const goals = ["Economizar tempo", "Mais energia", "Ganhar massa"];
+const skillOptions: CookingSkill[] = ["Mínimo", "Básico", "Tranquilo"];
 
 const ProfileTab = () => {
   const { profile, initialData, currentData, streak, badges, getWeeklyProgress, mealCompletions, progress, currentMenu, updateCurrentData } = useUser();
@@ -17,6 +18,7 @@ const ProfileTab = () => {
   const [editWeight, setEditWeight] = useState("");
   const [editGoal, setEditGoal] = useState("");
   const [editTraining, setEditTraining] = useState<string[]>([]);
+  const [editSkill, setEditSkill] = useState<CookingSkill>("Básico");
 
   const trainingOptions = ["Push/Pull/Legs", "Upper/Lower", "Cardio", "Abdômen/Core", "Não treino"];
 
@@ -25,6 +27,7 @@ const ProfileTab = () => {
     setEditWeight(String(currentData.weight));
     setEditGoal(currentData.goal);
     setEditTraining([...currentData.trainingDays]);
+    setEditSkill(currentData.cookingSkill);
     setEditing(true);
   };
 
@@ -33,6 +36,7 @@ const ProfileTab = () => {
       weight: parseFloat(editWeight) || currentData!.weight,
       goal: editGoal,
       trainingDays: editTraining,
+      cookingSkill: editSkill,
     });
     setEditing(false);
   };
@@ -43,7 +47,6 @@ const ProfileTab = () => {
     );
   };
 
-  // Weekly bar data
   const days = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
   const barData = days.map((day, i) => {
     const dayMeals = (mealCompletions[i] as boolean[] | undefined) || [];
@@ -56,16 +59,17 @@ const ProfileTab = () => {
     { name: "Restante", value: 100 - weeklyProgress },
   ];
 
-  const chartConfig = { completed: { label: "Refeições", color: "hsl(152 55% 38%)" } };
+  const chartConfig = { completed: { label: "Refeições", color: "hsl(var(--primary))" } };
   const pieConfig = {
-    Completo: { label: "Completo", color: "hsl(152 55% 38%)" },
-    Restante: { label: "Restante", color: "hsl(90 15% 94%)" },
+    Completo: { label: "Completo", color: "hsl(var(--primary))" },
+    Restante: { label: "Restante", color: "hsl(var(--muted))" },
   };
 
   if (!profile) return null;
 
   const weightDiff = initialData && currentData ? currentData.weight - initialData.weight : 0;
   const goalChanged = initialData && currentData ? initialData.goal !== currentData.goal : false;
+  const skillChanged = initialData && currentData ? initialData.cookingSkill !== currentData.cookingSkill : false;
 
   return (
     <div className="space-y-5 pb-4">
@@ -78,7 +82,7 @@ const ProfileTab = () => {
             </div>
             <div>
               <h1 className="text-xl font-extrabold">{profile.name}</h1>
-              <p className="text-sm opacity-80">{profile.goal}</p>
+              <p className="text-sm opacity-80">{profile.goal} • {profile.cookingSkill}</p>
             </div>
           </div>
           <div className="flex flex-col items-end gap-1.5">
@@ -99,7 +103,6 @@ const ProfileTab = () => {
         <div className="rounded-xl border bg-card p-5 shadow-sm">
           <h2 className="text-sm font-extrabold mb-3">📈 Relatório de Evolução</h2>
           <div className="space-y-3">
-            {/* Weight comparison */}
             <div className="flex items-center gap-3 rounded-lg bg-secondary p-3">
               <Scale className="h-5 w-5 text-primary shrink-0" />
               <div className="flex-1">
@@ -122,27 +125,42 @@ const ProfileTab = () => {
               </div>
             </div>
 
-            {/* Goal comparison */}
             <div className="flex items-center gap-3 rounded-lg bg-secondary p-3">
               <Target className="h-5 w-5 text-primary shrink-0" />
               <div className="flex-1">
                 <p className="text-[10px] font-bold text-muted-foreground">Objetivo</p>
                 <div className="flex items-center gap-2 text-sm font-bold">
                   <span>{initialData.goal}</span>
-                  {goalChanged && (
+                  {goalChanged ? (
                     <>
                       <ArrowRight className="h-3 w-3 text-muted-foreground" />
                       <span className="text-primary">{currentData.goal}</span>
                     </>
-                  )}
-                  {!goalChanged && (
+                  ) : (
                     <span className="text-[10px] font-bold text-muted-foreground">(mantido)</span>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* XP and Streak summary */}
+            <div className="flex items-center gap-3 rounded-lg bg-secondary p-3">
+              <ChefHat className="h-5 w-5 text-primary shrink-0" />
+              <div className="flex-1">
+                <p className="text-[10px] font-bold text-muted-foreground">Habilidade Culinária</p>
+                <div className="flex items-center gap-2 text-sm font-bold">
+                  <span>{initialData.cookingSkill}</span>
+                  {skillChanged ? (
+                    <>
+                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-primary">{currentData.cookingSkill}</span>
+                    </>
+                  ) : (
+                    <span className="text-[10px] font-bold text-muted-foreground">(mantido)</span>
+                  )}
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center gap-2 rounded-lg bg-nutri-green-light p-3">
                 <Zap className="h-4 w-4 text-primary" />
@@ -170,8 +188,8 @@ const ProfileTab = () => {
           <ChartContainer config={pieConfig} className="h-28 w-28">
             <PieChart>
               <Pie data={pieData} cx="50%" cy="50%" innerRadius={30} outerRadius={50} dataKey="value" strokeWidth={0}>
-                <Cell fill="hsl(152 55% 38%)" />
-                <Cell fill="hsl(90 15% 94%)" />
+                <Cell fill="hsl(var(--primary))" />
+                <Cell fill="hsl(var(--muted))" />
               </Pie>
             </PieChart>
           </ChartContainer>
@@ -192,7 +210,7 @@ const ProfileTab = () => {
           <BarChart data={barData}>
             <XAxis dataKey="day" tick={{ fontSize: 11 }} axisLine={false} tickLine={false} />
             <ChartTooltip content={<ChartTooltipContent />} />
-            <Bar dataKey="completed" fill="hsl(152 55% 38%)" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="completed" fill="hsl(var(--primary))" radius={[6, 6, 0, 0]} />
           </BarChart>
         </ChartContainer>
       </div>
@@ -244,6 +262,13 @@ const ProfileTab = () => {
               </div>
             </div>
             <div className="flex items-center gap-3 rounded-lg bg-secondary p-3">
+              <ChefHat className="h-4 w-4 text-primary" />
+              <div>
+                <p className="text-[10px] font-bold text-muted-foreground">Habilidade Culinária</p>
+                <p className="text-sm font-bold">{profile.cookingSkill}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-lg bg-secondary p-3">
               <Dumbbell className="h-4 w-4 text-primary" />
               <div>
                 <p className="text-[10px] font-bold text-muted-foreground">Treinos</p>
@@ -288,6 +313,22 @@ const ProfileTab = () => {
                     }`}
                   >
                     {g}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-bold text-muted-foreground">Habilidade Culinária</label>
+              <div className="mt-1 space-y-2">
+                {skillOptions.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setEditSkill(s)}
+                    className={`flex w-full items-center rounded-xl border p-3 text-sm font-bold transition-all ${
+                      editSkill === s ? "border-primary bg-nutri-green-light text-primary" : "bg-card"
+                    }`}
+                  >
+                    {s}
                   </button>
                 ))}
               </div>
