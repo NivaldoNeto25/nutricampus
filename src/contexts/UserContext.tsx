@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode, useMemo } from "react";
+import { createContext, useContext, useState, ReactNode, useMemo } from "react";
 import { menusByGoal, DayPlan } from "@/data/mockData";
 
 export interface UserProfile {
