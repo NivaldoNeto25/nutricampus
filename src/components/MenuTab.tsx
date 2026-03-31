@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { useUser } from "@/contexts/UserContext";
-import { ChevronRight, Flame, CalendarDays, Check, Repeat, Zap } from "lucide-react";
+import { ChevronRight, Flame, CalendarDays, Check, Repeat, Zap, ChevronDown, CookingPot } from "lucide-react";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const mealTypeColors: Record<string, string> = {
   "Café da Manhã": "bg-nutri-orange-light text-accent",
@@ -11,9 +17,8 @@ const mealTypeColors: Record<string, string> = {
 };
 
 const MenuTab = () => {
-  const { mealCompletions, toggleMealCompletion, streak, currentMenu, profile, progress } = useUser();
+  const { mealCompletions, toggleMealCompletion, substituteMeal, streak, currentMenu, profile, progress, getEffectiveMeal } = useUser();
   const [showWeek, setShowWeek] = useState(false);
-  const [subOpen, setSubOpen] = useState<string | null>(null);
 
   const today = new Date().getDay();
   const dayIndex = today === 0 ? 6 : today - 1;
@@ -63,73 +68,96 @@ const MenuTab = () => {
         </div>
       </div>
 
-      {/* Today's 5 meals */}
-      <div className="space-y-3">
-        {currentDay.meals.map((meal, i) => {
+      {/* Today's meals - Accordion */}
+      <Accordion type="single" collapsible className="space-y-3">
+        {currentDay.meals.map((_, i) => {
+          const meal = getEffectiveMeal(dayIndex, i);
           const completed = dayMeals[i] || false;
-          const isSubOpen = subOpen === `${dayIndex}-${i}`;
 
           return (
-            <div key={i} className="space-y-0">
-              <div
-                className={`flex items-start gap-3 rounded-xl border p-4 shadow-sm transition-all duration-200 ${
-                  completed ? "border-nutri-success/30 bg-nutri-green-light" : "bg-card hover:shadow-md"
-                }`}
-              >
-                <span className="text-3xl">{meal.emoji}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${mealTypeColors[meal.type] || "bg-muted text-muted-foreground"}`}>
-                      {meal.type}
-                    </span>
-                    <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
-                      <Flame className="h-3 w-3" />
-                      {meal.calories} kcal
-                    </span>
-                  </div>
-                  <h3 className={`mt-1 text-sm font-bold leading-tight transition-all duration-200 ${completed ? "line-through opacity-60" : ""}`}>
-                    {meal.title}
-                  </h3>
-                  <p className="mt-0.5 text-xs text-muted-foreground">{meal.description}</p>
+            <AccordionItem
+              key={i}
+              value={`meal-${i}`}
+              className={`rounded-xl border shadow-sm transition-all duration-200 overflow-hidden ${
+                completed ? "border-nutri-success/30 bg-nutri-green-light" : "bg-card"
+              }`}
+            >
+              <div className="p-4">
+                <div className="flex items-start gap-3">
+                  <span className="text-3xl">{meal.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${mealTypeColors[meal.type] || "bg-muted text-muted-foreground"}`}>
+                        {meal.type}
+                      </span>
+                      <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                        <Flame className="h-3 w-3" />
+                        {meal.calories} kcal
+                      </span>
+                    </div>
+                    <h3 className={`mt-1 text-sm font-bold leading-tight transition-all duration-200 ${completed ? "line-through opacity-60" : ""}`}>
+                      {meal.title}
+                    </h3>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{meal.description}</p>
 
-                  <div className="mt-2 flex items-center gap-2">
-                    <button
-                      onClick={() => toggleMealCompletion(dayIndex, i)}
-                      className={`flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold transition-all duration-200 ${
-                        completed
-                          ? "bg-nutri-success text-primary-foreground"
-                          : "border border-primary/30 text-primary hover:bg-nutri-green-light"
-                      }`}
-                    >
-                      <Check className="h-3 w-3" />
-                      {completed ? "Feito! +15XP" : "Comi"}
-                    </button>
-                    <button
-                      onClick={() => setSubOpen(isSubOpen ? null : `${dayIndex}-${i}`)}
-                      className="flex items-center gap-1 rounded-full border border-accent/30 px-3 py-1 text-[10px] font-bold text-accent transition-all duration-200 hover:bg-nutri-orange-light"
-                    >
-                      <Repeat className="h-3 w-3" />
-                      Substituir
-                    </button>
+                    <div className="mt-2 flex items-center gap-2">
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleMealCompletion(dayIndex, i); }}
+                        className={`flex items-center gap-1 rounded-full px-3 py-1 text-[10px] font-bold transition-all duration-200 ${
+                          completed
+                            ? "bg-nutri-success text-primary-foreground"
+                            : "border border-primary/30 text-primary hover:bg-nutri-green-light"
+                        }`}
+                      >
+                        <Check className="h-3 w-3" />
+                        {completed ? "Feito! +15XP" : "Comi"}
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); substituteMeal(dayIndex, i); }}
+                        className="flex items-center gap-1 rounded-full border border-accent/30 px-3 py-1 text-[10px] font-bold text-accent transition-all duration-200 hover:bg-nutri-orange-light"
+                      >
+                        <Repeat className="h-3 w-3" />
+                        Substituir
+                      </button>
+                    </div>
                   </div>
                 </div>
+
+                {/* Accordion trigger */}
+                <AccordionTrigger className="pt-2 pb-0 text-[10px] font-bold text-muted-foreground hover:no-underline">
+                  Ver detalhes
+                </AccordionTrigger>
               </div>
 
-              {isSubOpen && (
-                <div className="ml-10 space-y-1 rounded-b-xl border border-t-0 bg-nutri-orange-light p-3 animate-in fade-in slide-in-from-top-1 duration-200">
-                  <p className="text-[10px] font-bold text-accent mb-1.5">💡 Ingredientes desta refeição:</p>
-                  <div className="flex flex-wrap gap-1.5 mb-2">
-                    {meal.ingredients.map((ing, ii) => (
-                      <span key={ii} className="rounded-full bg-card px-2 py-0.5 text-[10px] font-semibold">{ing}</span>
-                    ))}
+              <AccordionContent className="px-4 pb-4 pt-0">
+                <div className="space-y-3 rounded-lg bg-secondary/50 p-3">
+                  <div>
+                    <p className="text-[10px] font-extrabold text-primary mb-1.5">🧾 Ingredientes:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {meal.ingredients.map((ing, ii) => (
+                        <span key={ii} className="rounded-full bg-card px-2 py-0.5 text-[10px] font-semibold border">
+                          {ing}
+                        </span>
+                      ))}
+                    </div>
                   </div>
-                  <p className="text-[10px] font-bold text-accent">🔄 Troque por refeição similar do mesmo tipo</p>
+                  <div>
+                    <p className="text-[10px] font-extrabold text-primary mb-1.5">
+                      <CookingPot className="h-3 w-3 inline mr-1" />
+                      Modo de Preparo:
+                    </p>
+                    <ol className="space-y-1 pl-4 list-decimal">
+                      {meal.prepSteps.map((step, si) => (
+                        <li key={si} className="text-[11px] text-muted-foreground font-medium">{step}</li>
+                      ))}
+                    </ol>
+                  </div>
                 </div>
-              )}
-            </div>
+              </AccordionContent>
+            </AccordionItem>
           );
         })}
-      </div>
+      </Accordion>
 
       {/* Full week toggle */}
       <button
@@ -150,7 +178,8 @@ const MenuTab = () => {
                 {day.trainingNote && <span className="ml-2 text-xs font-bold opacity-70">{day.trainingNote}</span>}
               </h3>
               <div className="mt-2 space-y-1.5">
-                {day.meals.map((meal, mi) => {
+                {day.meals.map((_, mi) => {
+                  const meal = getEffectiveMeal(di, mi);
                   const done = (mealCompletions[di] as boolean[] | undefined)?.[mi] || false;
                   return (
                     <div key={mi} className="flex items-center gap-2 text-xs">

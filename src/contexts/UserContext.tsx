@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, ReactNode, useMemo } from "react";
-import { menusByGoal, DayPlan } from "@/data/mockData";
+import { createContext, useContext, useState, ReactNode, useMemo, useCallback } from "react";
+import { menusByGoal, DayPlan, Meal, MealType, substitutionPool } from "@/data/mockData";
 
 export interface UserProfile {
   name: string;
@@ -32,20 +32,24 @@ export interface UserProgress {
 }
 
 interface UserState {
-  profile: UserProfile | null;
+  initialData: UserProfile | null;
+  currentData: UserProfile | null;
   onboardingComplete: boolean;
   mealCompletions: MealCompletion;
   progress: UserProgress;
+  menuOverrides: Record<string, Meal>; // key: "dayIndex-mealIndex"
 }
 
 interface UserContextType extends UserState {
+  profile: UserProfile | null; // alias for currentData
   completeOnboarding: (profile: UserProfile) => void;
-  updateProfile: (profile: UserProfile) => void;
+  updateCurrentData: (partial: Partial<UserProfile>) => void;
   toggleMealCompletion: (dayIndex: number, mealIndex: number) => void;
+  substituteMeal: (dayIndex: number, mealIndex: number) => void;
   getWeeklyProgress: () => number;
   getTodayProgress: () => number;
   currentMenu: DayPlan[];
-  // Expose flat for backward compat
+  getEffectiveMeal: (dayIndex: number, mealIndex: number) => Meal;
   streak: number;
   badges: Badge[];
 }
@@ -64,10 +68,12 @@ const defaultBadges: Badge[] = [
 
 function getInitialState(): UserState {
   return {
-    profile: null,
+    initialData: null,
+    currentData: null,
     onboardingComplete: false,
     mealCompletions: {},
-    progress: { xp: 0, streak: 3, badges: defaultBadges },
+    progress: { xp: 0, streak: 0, badges: defaultBadges },
+    menuOverrides: {},
   };
 }
 
@@ -77,26 +83,55 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<UserState>(getInitialState);
 
   const currentMenu = useMemo(() => {
-    if (!state.profile?.goal) return menusByGoal["Mais energia"];
-    return menusByGoal[state.profile.goal] || menusByGoal["Mais energia"];
-  }, [state.profile?.goal]);
+    if (!state.currentData?.goal) return menusByGoal["Mais energia"];
+    return menusByGoal[state.currentData.goal] || menusByGoal["Mais energia"];
+  }, [state.currentData?.goal]);
+
+  const getEffectiveMeal = useCallback((dayIndex: number, mealIndex: number): Meal => {
+    const key = `${dayIndex}-${mealIndex}`;
+    return state.menuOverrides[key] || currentMenu[dayIndex]?.meals[mealIndex];
+  }, [state.menuOverrides, currentMenu]);
 
   const completeOnboarding = (profile: UserProfile) => {
     setState((prev) => {
       const badges = prev.progress.badges.map((b) =>
         b.id === "b1" ? { ...b, unlocked: true, unlockedAt: new Date().toISOString() } : b
       );
-      return { ...prev, profile, onboardingComplete: true, progress: { ...prev.progress, badges } };
+      return {
+        ...prev,
+        initialData: { ...profile },
+        currentData: { ...profile },
+        onboardingComplete: true,
+        progress: { ...prev.progress, badges },
+      };
     });
   };
 
-  const updateProfile = (profile: UserProfile) => {
-    setState((prev) => ({ ...prev, profile }));
+  const updateCurrentData = (partial: Partial<UserProfile>) => {
+    setState((prev) => {
+      if (!prev.currentData) return prev;
+      return { ...prev, currentData: { ...prev.currentData, ...partial } };
+    });
+  };
+
+  const substituteMeal = (dayIndex: number, mealIndex: number) => {
+    setState((prev) => {
+      const currentMeal = getEffectiveMeal(dayIndex, mealIndex);
+      const mealType = currentMeal.type as MealType;
+      const pool = substitutionPool[mealType] || [];
+      // Pick a random meal from the pool that's different from the current
+      const candidates = pool.filter((m) => m.title !== currentMeal.title);
+      if (candidates.length === 0) return prev;
+      const newMeal = candidates[Math.floor(Math.random() * candidates.length)];
+      const key = `${dayIndex}-${mealIndex}`;
+      return { ...prev, menuOverrides: { ...prev.menuOverrides, [key]: newMeal } };
+    });
   };
 
   const toggleMealCompletion = (dayIndex: number, mealIndex: number) => {
     setState((prev) => {
-      const dayMeals = prev.mealCompletions[dayIndex] || currentMenu[dayIndex].meals.map(() => false);
+      const totalMeals = currentMenu[dayIndex]?.meals.length || 5;
+      const dayMeals = prev.mealCompletions[dayIndex] || Array(totalMeals).fill(false);
       const updated = [...dayMeals];
       const wasComplete = updated[mealIndex];
       updated[mealIndex] = !wasComplete;
@@ -162,12 +197,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
     <UserContext.Provider
       value={{
         ...state,
+        profile: state.currentData,
         completeOnboarding,
-        updateProfile,
+        updateCurrentData,
         toggleMealCompletion,
+        substituteMeal,
         getWeeklyProgress,
         getTodayProgress,
         currentMenu,
+        getEffectiveMeal,
         streak: state.progress.streak,
         badges: state.progress.badges,
       }}
