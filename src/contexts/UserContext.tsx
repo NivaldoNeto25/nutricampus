@@ -62,27 +62,13 @@ const defaultBadges: Badge[] = [
   { id: "b6", title: "Streak de 7 dias", description: "7 dias seguidos no plano", emoji: "🔥", unlocked: false },
 ];
 
-const STORAGE_KEY = "nutricampus_user";
-
-function loadState(): UserState {
-  const defaults: UserState = {
+function getInitialState(): UserState {
+  return {
     profile: null,
     onboardingComplete: false,
     mealCompletions: {},
     progress: { xp: 0, streak: 3, badges: defaultBadges },
   };
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      return {
-        ...defaults,
-        ...parsed,
-        progress: { ...defaults.progress, ...(parsed.progress || {}) },
-      };
-    }
-  } catch {}
-  return defaults;
 }
 
 const UserContext = createContext<UserContextType | null>(null);
