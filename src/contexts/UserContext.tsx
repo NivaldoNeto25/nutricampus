@@ -74,11 +74,7 @@ function getInitialState(): UserState {
 const UserContext = createContext<UserContextType | null>(null);
 
 export function UserProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<UserState>(loadState);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
+  const [state, setState] = useState<UserState>(getInitialState);
 
   const currentMenu = useMemo(() => {
     if (!state.profile?.goal) return menusByGoal["Mais energia"];
