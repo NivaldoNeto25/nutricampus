@@ -37,7 +37,6 @@ const OnboardingWizard = () => {
   const [weight, setWeight] = useState("");
   const [height, setHeight] = useState("");
   const [goal, setGoal] = useState("");
-  const [routine, setRoutine] = useState("");
   const [training, setTraining] = useState<string[]>([]);
   const [preferences, setPreferences] = useState<string[]>([]);
   const [restrictions, setRestrictions] = useState<string[]>([]);
@@ -55,11 +54,11 @@ const OnboardingWizard = () => {
   const canProceed = () => {
     if (step === 0) return name.trim().length >= 2 && weight.trim() !== "" && height.trim() !== "";
     if (step === 1) return !!goal;
-    if (step === 2) return !!routine && training.length > 0;
+    if (step === 2) return training.length > 0;
     if (step === 3) {
       if (!routineType) return false;
       if (routineType === "Só Estuda") return !!collegeStart && !!collegeEnd;
-      if (routineType === "Trabalha e Estuda")
+      if (routineType === "Trabalha e Estuda" || routineType === "Home Office e Estuda")
         return !!collegeStart && !!collegeEnd && !!workStart && !!workEnd;
       return true; // "Outro"
     }
@@ -69,19 +68,22 @@ const OnboardingWizard = () => {
   };
 
   const handleFinish = () => {
+    const rt = (routineType || "Outro") as RoutineType;
     const schedule: RoutineSchedule = {
-      routineType: (routineType || "Outro") as RoutineType,
-      ...(routineType === "Só Estuda" || routineType === "Trabalha e Estuda"
+      routineType: rt,
+      ...(rt === "Só Estuda" || rt === "Trabalha e Estuda" || rt === "Home Office e Estuda"
         ? { collegeStart, collegeEnd }
         : {}),
-      ...(routineType === "Trabalha e Estuda" ? { workStart, workEnd } : {}),
+      ...(rt === "Trabalha e Estuda" || rt === "Home Office e Estuda"
+        ? { workStart, workEnd }
+        : {}),
     };
     const profile: UserProfile = {
       name: name.trim(),
       weight: parseFloat(weight) || 70,
       height: parseFloat(height) || 170,
       goal,
-      weeklyRoutine: routine,
+      weeklyRoutine: rt,
       trainingDays: training,
       preferences,
       restrictions,
