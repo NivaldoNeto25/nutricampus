@@ -3,7 +3,7 @@ import { getMenuForProfile, DayPlan, Meal, MealType, getSubstitution, getSubstit
 
 export type CookingSkill = "Mínimo" | "Básico" | "Tranquilo";
 
-export type RoutineType = "Só Estuda" | "Trabalha e Estuda" | "Outro";
+export type RoutineType = "Só Estuda" | "Trabalha e Estuda" | "Home Office e Estuda" | "Outro";
 
 export interface RoutineSchedule {
   routineType: RoutineType;
