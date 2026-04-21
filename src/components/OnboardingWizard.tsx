@@ -189,81 +189,84 @@ const OnboardingWizard = () => {
       </div>
     </div>,
 
-    // Step 3: Routine schedule
-    <div key="schedule" className="space-y-5">
+    // Step 3: Routine schedule (single question, inline expansion)
+    <div key="schedule" className="space-y-4">
       <div className="text-center">
         <span className="text-4xl">🕐</span>
-        <h2 className="mt-2 text-lg font-extrabold">Como é a sua rotina?</h2>
-        <p className="text-sm text-muted-foreground">Vamos sincronizar suas refeições com seus blocos fora de casa.</p>
+        <h2 className="mt-2 text-lg font-extrabold">Como é a sua rotina hoje?</h2>
+        <p className="text-sm text-muted-foreground">Vamos sincronizar suas refeições com seus blocos do dia.</p>
       </div>
 
-      <div className="grid grid-cols-3 gap-2">
+      <div className="space-y-2">
         {([
-          { label: "Só Estuda", icon: GraduationCap },
-          { label: "Trabalha e Estuda", icon: Briefcase },
-          { label: "Outro", icon: Sparkles },
-        ] as { label: RoutineType; icon: typeof GraduationCap }[]).map(({ label, icon: Icon }) => {
+          { label: "Só Estuda", icon: GraduationCap, hint: "Faculdade apenas" },
+          { label: "Trabalha e Estuda", icon: Briefcase, hint: "Rotina dupla fora de casa" },
+          { label: "Home Office e Estuda", icon: Sparkles, hint: "Trabalho em casa + faculdade" },
+        ] as { label: RoutineType; icon: typeof GraduationCap; hint: string }[]).map(({ label, icon: Icon, hint }) => {
           const active = routineType === label;
+          const showWork = active && (label === "Trabalha e Estuda" || label === "Home Office e Estuda");
+          const showCollege = active;
           return (
-            <button
-              key={label}
-              onClick={() => setRoutineType(label)}
-              className={`flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center transition-all duration-200 ${
-                active ? "border-primary bg-nutri-green-light shadow-sm" : "bg-card hover:shadow-sm"
-              }`}
-            >
-              <Icon className={`h-5 w-5 ${active ? "text-primary" : "text-muted-foreground"}`} />
-              <span className={`text-xs font-bold leading-tight ${active ? "text-primary" : ""}`}>{label}</span>
-            </button>
+            <div key={label}>
+              <button
+                onClick={() => setRoutineType(label)}
+                className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all duration-200 ${
+                  active ? "border-primary bg-nutri-green-light shadow-sm" : "bg-card hover:shadow-sm"
+                }`}
+              >
+                <Icon className={`h-5 w-5 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`} />
+                <div className="flex-1">
+                  <p className={`text-sm font-bold ${active ? "text-primary" : ""}`}>{label}</p>
+                  <p className="text-[11px] text-muted-foreground">{hint}</p>
+                </div>
+              </button>
+
+              {active && (
+                <div className="mt-2 space-y-3 rounded-xl border border-primary/30 bg-card p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                  {showWork && (
+                    <div>
+                      <p className="text-xs font-extrabold mb-2 flex items-center gap-1.5 text-accent">
+                        <Briefcase className="h-3.5 w-3.5" /> Trabalho
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[11px] font-bold text-muted-foreground">Início</label>
+                          <input type="time" value={workStart} onChange={(e) => setWorkStart(e.target.value)}
+                            className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm font-semibold outline-none focus:border-primary" />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-bold text-muted-foreground">Fim</label>
+                          <input type="time" value={workEnd} onChange={(e) => setWorkEnd(e.target.value)}
+                            className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm font-semibold outline-none focus:border-primary" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {showCollege && (
+                    <div>
+                      <p className="text-xs font-extrabold mb-2 flex items-center gap-1.5 text-primary">
+                        <GraduationCap className="h-3.5 w-3.5" /> Faculdade
+                      </p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[11px] font-bold text-muted-foreground">Início</label>
+                          <input type="time" value={collegeStart} onChange={(e) => setCollegeStart(e.target.value)}
+                            className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm font-semibold outline-none focus:border-primary" />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-bold text-muted-foreground">Fim</label>
+                          <input type="time" value={collegeEnd} onChange={(e) => setCollegeEnd(e.target.value)}
+                            className="mt-1 w-full rounded-lg border bg-background px-3 py-2 text-sm font-semibold outline-none focus:border-primary" />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
-
-      {(routineType === "Só Estuda" || routineType === "Trabalha e Estuda") && (
-        <div className="rounded-xl border bg-card p-4 animate-in fade-in slide-in-from-top-2 duration-200">
-          <p className="text-sm font-extrabold mb-3 flex items-center gap-2">
-            <GraduationCap className="h-4 w-4 text-primary" /> Faculdade
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-bold text-muted-foreground">Início</label>
-              <input type="time" value={collegeStart} onChange={(e) => setCollegeStart(e.target.value)}
-                className="mt-1 w-full rounded-xl border bg-background px-3 py-2.5 text-sm font-semibold outline-none focus:border-primary" />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-muted-foreground">Fim</label>
-              <input type="time" value={collegeEnd} onChange={(e) => setCollegeEnd(e.target.value)}
-                className="mt-1 w-full rounded-xl border bg-background px-3 py-2.5 text-sm font-semibold outline-none focus:border-primary" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {routineType === "Trabalha e Estuda" && (
-        <div className="rounded-xl border bg-card p-4 animate-in fade-in slide-in-from-top-2 duration-200">
-          <p className="text-sm font-extrabold mb-3 flex items-center gap-2">
-            <Briefcase className="h-4 w-4 text-accent" /> Trabalho
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-bold text-muted-foreground">Início</label>
-              <input type="time" value={workStart} onChange={(e) => setWorkStart(e.target.value)}
-                className="mt-1 w-full rounded-xl border bg-background px-3 py-2.5 text-sm font-semibold outline-none focus:border-primary" />
-            </div>
-            <div>
-              <label className="text-xs font-bold text-muted-foreground">Fim</label>
-              <input type="time" value={workEnd} onChange={(e) => setWorkEnd(e.target.value)}
-                className="mt-1 w-full rounded-xl border bg-background px-3 py-2.5 text-sm font-semibold outline-none focus:border-primary" />
-            </div>
-          </div>
-        </div>
-      )}
-
-      {routineType === "Outro" && (
-        <p className="text-center text-xs text-muted-foreground">
-          Sem horários fixos — vamos usar uma janela padrão para suas refeições.
-        </p>
-      )}
     </div>,
 
     // Step 4: Preferences & Restrictions
