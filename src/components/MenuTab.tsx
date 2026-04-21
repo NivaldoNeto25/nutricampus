@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useUser } from "@/contexts/UserContext";
-import { ChevronRight, Flame, CalendarDays, Check, Repeat, Zap, CookingPot, Clock } from "lucide-react";
+import { ChevronRight, Flame, CalendarDays, Check, Repeat, Zap, CookingPot, Clock, Backpack, Home } from "lucide-react";
 import SubstitutionModal from "@/components/SubstitutionModal";
 import { Meal, MealType } from "@/data/mockData";
 import {
@@ -33,41 +33,36 @@ const MenuTab = () => {
   const daysCompleted = Object.keys(mealCompletions).length;
   const progressPct = Math.round((daysCompleted / 7) * 100);
 
-  // Compute meal times based on user's routine schedule.
-  // Derive "leave" = earliest activity start, "back" = latest activity end.
-  const isWeekend = dayIndex >= 5;
-  const sched = profile?.schedule;
-  const pickEarliest = (arr: (string | undefined)[]) =>
-    arr.filter(Boolean).sort()[0];
-  const pickLatest = (arr: (string | undefined)[]) =>
-    arr.filter(Boolean).sort().pop();
-  const leave =
-    (!isWeekend && sched
-      ? pickEarliest([sched.workStart, sched.collegeStart, sched.weekdayLeave])
-      : undefined) || "08:30";
-  const back =
-    (!isWeekend && sched
-      ? pickLatest([sched.workEnd, sched.collegeEnd, sched.weekdayReturn])
-      : undefined) || (isWeekend ? "20:00" : "19:00");
+  // FIXED human anchor times — never compute absurd hours.
+  const mealTimes: Record<MealType, string> = {
+    "Café da Manhã": "07:30",
+    "Lanche da Manhã": "10:00",
+    "Almoço": "12:30",
+    "Lanche da Tarde": "16:00",
+    "Jantar": "19:30",
+  };
 
   const toMin = (t: string) => {
     const [h, m] = t.split(":").map(Number);
     return (h || 0) * 60 + (m || 0);
   };
-  const fromMin = (m: number) => {
-    const total = ((m % (24 * 60)) + 24 * 60) % (24 * 60);
-    const h = Math.floor(total / 60), mm = total % 60;
-    return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
-  };
-  const leaveMin = toMin(leave);
-  const backMin = toMin(back);
-  // Distribute 5 meals: breakfast 30min before leave, lunch midpoint, etc.
-  const mealTimes: Record<MealType, string> = {
-    "Café da Manhã": fromMin(leaveMin - 30),
-    "Lanche da Manhã": fromMin(leaveMin + 180),
-    "Almoço": fromMin(Math.round((leaveMin + backMin) / 2)),
-    "Lanche da Tarde": fromMin(backMin - 60),
-    "Jantar": fromMin(backMin + 90),
+
+  // Build occupied windows (weekdays only) from routine schedule.
+  const isWeekend = dayIndex >= 5;
+  const sched = profile?.schedule;
+  const occupiedWindows: Array<[number, number]> = [];
+  if (!isWeekend && sched) {
+    if (sched.collegeStart && sched.collegeEnd) {
+      occupiedWindows.push([toMin(sched.collegeStart), toMin(sched.collegeEnd)]);
+    }
+    if (sched.workStart && sched.workEnd) {
+      occupiedWindows.push([toMin(sched.workStart), toMin(sched.workEnd)]);
+    }
+  }
+
+  const isOccupied = (time: string) => {
+    const m = toMin(time);
+    return occupiedWindows.some(([s, e]) => m >= s && m <= e);
   };
 
   const openSubstitution = (di: number, mi: number) => {
