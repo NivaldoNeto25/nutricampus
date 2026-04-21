@@ -8,12 +8,6 @@ const goals = [
   { label: "Ganhar massa", emoji: "💪" },
 ];
 
-const routines = [
-  { label: "Trabalho + Faculdade (integral)", emoji: "🏢" },
-  { label: "Só faculdade (meio período)", emoji: "🎓" },
-  { label: "Home office + Faculdade", emoji: "🏠" },
-];
-
 const trainingOptions = [
   { label: "Push/Pull/Legs", emoji: "🏋️" },
   { label: "Upper/Lower", emoji: "💪" },
