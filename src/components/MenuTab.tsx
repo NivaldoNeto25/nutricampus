@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useUser } from "@/contexts/UserContext";
-import { ChevronRight, Flame, CalendarDays, Check, Repeat, Zap, ChevronDown, CookingPot } from "lucide-react";
+import { ChevronRight, Flame, CalendarDays, Check, Repeat, Zap, CookingPot, Clock } from "lucide-react";
+import SubstitutionModal from "@/components/SubstitutionModal";
+import { Meal, MealType } from "@/data/mockData";
 import {
   Accordion,
   AccordionContent,
@@ -17,8 +19,11 @@ const mealTypeColors: Record<string, string> = {
 };
 
 const MenuTab = () => {
-  const { mealCompletions, toggleMealCompletion, substituteMeal, streak, currentMenu, profile, progress, getEffectiveMeal } = useUser();
+  const { mealCompletions, toggleMealCompletion, substituteMealWith, getSubstitutionChoices, streak, currentMenu, profile, progress, getEffectiveMeal } = useUser();
   const [showWeek, setShowWeek] = useState(false);
+  const [subState, setSubState] = useState<{ open: boolean; dayIndex: number; mealIndex: number; options: Meal[]; currentTitle: string }>({
+    open: false, dayIndex: 0, mealIndex: 0, options: [], currentTitle: "",
+  });
 
   const today = new Date().getDay();
   const dayIndex = today === 0 ? 6 : today - 1;
@@ -27,6 +32,43 @@ const MenuTab = () => {
 
   const daysCompleted = Object.keys(mealCompletions).length;
   const progressPct = Math.round((daysCompleted / 7) * 100);
+
+  // Compute meal times based on user's routine schedule
+  const isWeekend = dayIndex >= 5;
+  const sched = profile?.schedule;
+  const leave = sched ? (isWeekend ? sched.weekendLeave : sched.weekdayLeave) : "07:30";
+  const back = sched ? (isWeekend ? sched.weekendReturn : sched.weekdayReturn) : "19:00";
+
+  const toMin = (t: string) => {
+    const [h, m] = t.split(":").map(Number);
+    return (h || 0) * 60 + (m || 0);
+  };
+  const fromMin = (m: number) => {
+    const total = ((m % (24 * 60)) + 24 * 60) % (24 * 60);
+    const h = Math.floor(total / 60), mm = total % 60;
+    return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+  };
+  const leaveMin = toMin(leave);
+  const backMin = toMin(back);
+  // Distribute 5 meals: breakfast 30min before leave, lunch midpoint, etc.
+  const mealTimes: Record<MealType, string> = {
+    "Café da Manhã": fromMin(leaveMin - 30),
+    "Lanche da Manhã": fromMin(leaveMin + 180),
+    "Almoço": fromMin(Math.round((leaveMin + backMin) / 2)),
+    "Lanche da Tarde": fromMin(backMin - 60),
+    "Jantar": fromMin(backMin + 90),
+  };
+
+  const openSubstitution = (di: number, mi: number) => {
+    const m = getEffectiveMeal(di, mi);
+    setSubState({
+      open: true,
+      dayIndex: di,
+      mealIndex: mi,
+      options: getSubstitutionChoices(di, mi),
+      currentTitle: m.title,
+    });
+  };
 
   return (
     <div className="space-y-5 pb-4">
@@ -73,6 +115,7 @@ const MenuTab = () => {
         {currentDay.meals.map((_, i) => {
           const meal = getEffectiveMeal(dayIndex, i);
           const completed = dayMeals[i] || false;
+          const time = mealTimes[meal.type as MealType];
 
           return (
             <AccordionItem
@@ -90,6 +133,12 @@ const MenuTab = () => {
                       <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${mealTypeColors[meal.type] || "bg-muted text-muted-foreground"}`}>
                         {meal.type}
                       </span>
+                      {time && (
+                        <span className="flex items-center gap-0.5 text-[10px] font-bold text-primary">
+                          <Clock className="h-3 w-3" />
+                          {time}
+                        </span>
+                      )}
                       <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
                         <Flame className="h-3 w-3" />
                         {meal.calories} kcal
@@ -113,7 +162,7 @@ const MenuTab = () => {
                         {completed ? "Feito! +15XP" : "Comi"}
                       </button>
                       <button
-                        onClick={(e) => { e.stopPropagation(); substituteMeal(dayIndex, i); }}
+                        onClick={(e) => { e.stopPropagation(); openSubstitution(dayIndex, i); }}
                         className="flex items-center gap-1 rounded-full border border-accent/30 px-3 py-1 text-[10px] font-bold text-accent transition-all duration-200 hover:bg-nutri-orange-light"
                       >
                         <Repeat className="h-3 w-3" />
@@ -195,6 +244,14 @@ const MenuTab = () => {
           ))}
         </div>
       )}
+
+      <SubstitutionModal
+        open={subState.open}
+        onOpenChange={(o) => setSubState((s) => ({ ...s, open: o }))}
+        options={subState.options}
+        currentTitle={subState.currentTitle}
+        onSelect={(meal) => substituteMealWith(subState.dayIndex, subState.mealIndex, meal)}
+      />
     </div>
   );
 };

@@ -216,6 +216,141 @@ export function getSubstitution(type: MealType, currentTitle: string, skill: Coo
   return candidates[Math.floor(Math.random() * candidates.length)];
 }
 
+export function getSubstitutionOptions(
+  type: MealType,
+  currentTitle: string,
+  skill: CookingSkill,
+  goal: string,
+  count = 4
+): Meal[] {
+  const skillOrder: CookingSkill[] = ["Mínimo", "Básico", "Tranquilo"];
+  const maxIndex = skillOrder.indexOf(skill);
+  const allowedSkills = skillOrder.slice(0, maxIndex + 1);
+
+  let candidates = allRecipes.filter(
+    (r) => r.type === type && allowedSkills.includes(r.skill) && r.title !== currentTitle
+  );
+  if (goal === "Ganhar massa") {
+    const high = candidates.filter((c) => c.calories >= 350);
+    if (high.length >= count) candidates = high;
+  }
+  // Shuffle
+  const shuffled = [...candidates].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+}
+
+// ─── MAPA DE QUANTIDADES PADRÃO POR INGREDIENTE (por porção) ───
+// Usado pela Lista de Compras para somar quantidades reais.
+export interface IngredientQuantity {
+  amount: number;
+  unit: string;
+}
+
+const defaultQuantities: Record<string, IngredientQuantity> = {
+  // Proteínas
+  "Ovos": { amount: 2, unit: "un" },
+  "Claras de ovo": { amount: 3, unit: "un" },
+  "Ovo cozido": { amount: 1, unit: "un" },
+  "Ovo": { amount: 1, unit: "un" },
+  "Peito de frango": { amount: 150, unit: "g" },
+  "Coxa de frango": { amount: 200, unit: "g" },
+  "Carne moída": { amount: 150, unit: "g" },
+  "Atum": { amount: 1, unit: "lata" },
+  "Whey protein": { amount: 30, unit: "g" },
+  "Iogurte natural": { amount: 170, unit: "g" },
+  "Iogurte grego": { amount: 150, unit: "g" },
+  "Cottage": { amount: 50, unit: "g" },
+  "Queijo branco": { amount: 30, unit: "g" },
+  "Queijo parmesão": { amount: 20, unit: "g" },
+  "Queijo": { amount: 30, unit: "g" },
+  "Leite": { amount: 200, unit: "ml" },
+  "Leite integral": { amount: 200, unit: "ml" },
+  "Creme de leite light": { amount: 50, unit: "ml" },
+  "Requeijão light": { amount: 20, unit: "g" },
+  // Hortifruti
+  "Banana": { amount: 1, unit: "un" },
+  "Maçã": { amount: 1, unit: "un" },
+  "Mamão": { amount: 100, unit: "g" },
+  "Manga": { amount: 100, unit: "g" },
+  "Morango": { amount: 80, unit: "g" },
+  "Mirtilo": { amount: 50, unit: "g" },
+  "Uva": { amount: 80, unit: "g" },
+  "Limão": { amount: 1, unit: "un" },
+  "Abacate": { amount: 0.5, unit: "un" },
+  "Tomate": { amount: 1, unit: "un" },
+  "Cebola": { amount: 0.5, unit: "un" },
+  "Alho": { amount: 1, unit: "dente" },
+  "Cenoura": { amount: 1, unit: "un" },
+  "Batata-doce": { amount: 150, unit: "g" },
+  "Batata": { amount: 150, unit: "g" },
+  "Abóbora": { amount: 150, unit: "g" },
+  "Abobrinha": { amount: 100, unit: "g" },
+  "Espinafre": { amount: 50, unit: "g" },
+  "Alface": { amount: 50, unit: "g" },
+  "Rúcula": { amount: 30, unit: "g" },
+  "Repolho": { amount: 80, unit: "g" },
+  "Pepino": { amount: 0.5, unit: "un" },
+  "Salada": { amount: 100, unit: "g" },
+  "Cogumelos": { amount: 80, unit: "g" },
+  "Ervilha": { amount: 50, unit: "g" },
+  "Milho": { amount: 50, unit: "g" },
+  // Grãos / Mercearia
+  "Arroz": { amount: 80, unit: "g" },
+  "Arroz integral": { amount: 80, unit: "g" },
+  "Arroz arbóreo": { amount: 80, unit: "g" },
+  "Feijão": { amount: 80, unit: "g" },
+  "Lentilha": { amount: 80, unit: "g" },
+  "Grão-de-bico": { amount: 80, unit: "g" },
+  "Quinoa": { amount: 60, unit: "g" },
+  "Aveia": { amount: 40, unit: "g" },
+  "Granola": { amount: 30, unit: "g" },
+  "Macarrão integral": { amount: 80, unit: "g" },
+  "Massa integral": { amount: 80, unit: "g" },
+  "Pão integral": { amount: 2, unit: "fatias" },
+  "Tortilla integral": { amount: 1, unit: "un" },
+  "Goma de tapioca": { amount: 40, unit: "g" },
+  "Polvilho": { amount: 50, unit: "g" },
+  "Farinha integral": { amount: 50, unit: "g" },
+  "Biscoito de arroz": { amount: 3, unit: "un" },
+  "Pasta de amendoim": { amount: 15, unit: "g" },
+  "Tahine": { amount: 10, unit: "g" },
+  "Mel": { amount: 10, unit: "g" },
+  "Azeite": { amount: 10, unit: "ml" },
+  "Manteiga": { amount: 10, unit: "g" },
+  "Leite de coco": { amount: 50, unit: "ml" },
+  "Castanha de caju": { amount: 15, unit: "g" },
+  "Castanha-do-pará": { amount: 10, unit: "g" },
+  "Nozes": { amount: 10, unit: "g" },
+  "Amendoim": { amount: 15, unit: "g" },
+  "Castanhas": { amount: 20, unit: "g" },
+  "Polpa de açaí": { amount: 100, unit: "g" },
+  "Cacau em pó": { amount: 5, unit: "g" },
+  "Cacau": { amount: 5, unit: "g" },
+  "Molho de tomate": { amount: 50, unit: "ml" },
+  "Molho shoyu": { amount: 10, unit: "ml" },
+  "Maionese light": { amount: 10, unit: "g" },
+  "Caldo de legumes": { amount: 200, unit: "ml" },
+  "Sopa instantânea": { amount: 1, unit: "un" },
+  // Temperos
+  "Curry": { amount: 1, unit: "pitada" },
+  "Canela": { amount: 1, unit: "pitada" },
+  "Sal": { amount: 1, unit: "pitada" },
+};
+
+export function getQuantityForIngredient(name: string): IngredientQuantity {
+  return defaultQuantities[name] || { amount: 1, unit: "porção" };
+}
+
+export function formatQuantity(amount: number, unit: string): string {
+  // round nice
+  if (unit === "g" || unit === "ml") {
+    if (amount >= 1000) return `${(amount / 1000).toFixed(amount % 1000 === 0 ? 0 : 1)} ${unit === "g" ? "kg" : "L"}`;
+    return `${Math.round(amount)} ${unit}`;
+  }
+  const rounded = Math.round(amount * 10) / 10;
+  return `${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)} ${unit}`;
+}
+
 // Legacy exports for compatibility
 export const substitutionPool: Record<MealType, Meal[]> = {
   "Café da Manhã": allRecipes.filter((r) => r.type === "Café da Manhã"),

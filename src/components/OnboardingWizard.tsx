@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useUser, UserProfile, CookingSkill } from "@/contexts/UserContext";
-import { ChevronRight, ChevronLeft, UtensilsCrossed } from "lucide-react";
+import { useUser, UserProfile, CookingSkill, RoutineSchedule } from "@/contexts/UserContext";
+import { ChevronRight, ChevronLeft, UtensilsCrossed, Clock } from "lucide-react";
 
 const goals = [
   { label: "Mais energia", emoji: "⚡" },
@@ -48,6 +48,10 @@ const OnboardingWizard = () => {
   const [preferences, setPreferences] = useState<string[]>([]);
   const [restrictions, setRestrictions] = useState<string[]>([]);
   const [cookingSkill, setCookingSkill] = useState<CookingSkill | "">("");
+  const [weekdayLeave, setWeekdayLeave] = useState("07:30");
+  const [weekdayReturn, setWeekdayReturn] = useState("19:00");
+  const [weekendLeave, setWeekendLeave] = useState("10:00");
+  const [weekendReturn, setWeekendReturn] = useState("22:00");
 
   const toggleArray = (arr: string[], val: string, setter: (v: string[]) => void) => {
     setter(arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val]);
@@ -57,12 +61,16 @@ const OnboardingWizard = () => {
     if (step === 0) return name.trim().length >= 2 && weight.trim() !== "" && height.trim() !== "";
     if (step === 1) return !!goal;
     if (step === 2) return !!routine && training.length > 0;
-    if (step === 3) return preferences.length > 0 && restrictions.length > 0;
-    if (step === 4) return !!cookingSkill;
+    if (step === 3) return !!weekdayLeave && !!weekdayReturn && !!weekendLeave && !!weekendReturn;
+    if (step === 4) return preferences.length > 0 && restrictions.length > 0;
+    if (step === 5) return !!cookingSkill;
     return true;
   };
 
   const handleFinish = () => {
+    const schedule: RoutineSchedule = {
+      weekdayLeave, weekdayReturn, weekendLeave, weekendReturn,
+    };
     const profile: UserProfile = {
       name: name.trim(),
       weight: parseFloat(weight) || 70,
@@ -73,11 +81,12 @@ const OnboardingWizard = () => {
       preferences,
       restrictions,
       cookingSkill: cookingSkill as CookingSkill,
+      schedule,
     };
     completeOnboarding(profile);
   };
 
-  const totalSteps = 5;
+  const totalSteps = 6;
 
   const steps = [
     // Step 0: Personal data
@@ -189,7 +198,52 @@ const OnboardingWizard = () => {
       </div>
     </div>,
 
-    // Step 3: Preferences & Restrictions
+    // Step 3: Routine schedule
+    <div key="schedule" className="space-y-5">
+      <div className="text-center">
+        <span className="text-4xl">🕐</span>
+        <h2 className="mt-2 text-lg font-extrabold">Como é a sua rotina?</h2>
+        <p className="text-sm text-muted-foreground">Vamos sincronizar suas refeições com seus horários.</p>
+      </div>
+      <div className="space-y-4">
+        <div className="rounded-xl border bg-card p-4">
+          <p className="text-sm font-extrabold mb-3 flex items-center gap-2">
+            <Clock className="h-4 w-4 text-primary" /> Dias úteis (Seg–Sex)
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-muted-foreground">Saio de casa</label>
+              <input type="time" value={weekdayLeave} onChange={(e) => setWeekdayLeave(e.target.value)}
+                className="mt-1 w-full rounded-xl border bg-background px-3 py-2.5 text-sm font-semibold outline-none focus:border-primary" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-muted-foreground">Volto p/ casa</label>
+              <input type="time" value={weekdayReturn} onChange={(e) => setWeekdayReturn(e.target.value)}
+                className="mt-1 w-full rounded-xl border bg-background px-3 py-2.5 text-sm font-semibold outline-none focus:border-primary" />
+            </div>
+          </div>
+        </div>
+        <div className="rounded-xl border bg-card p-4">
+          <p className="text-sm font-extrabold mb-3 flex items-center gap-2">
+            <Clock className="h-4 w-4 text-accent" /> Finais de semana
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs font-bold text-muted-foreground">Saio de casa</label>
+              <input type="time" value={weekendLeave} onChange={(e) => setWeekendLeave(e.target.value)}
+                className="mt-1 w-full rounded-xl border bg-background px-3 py-2.5 text-sm font-semibold outline-none focus:border-primary" />
+            </div>
+            <div>
+              <label className="text-xs font-bold text-muted-foreground">Volto p/ casa</label>
+              <input type="time" value={weekendReturn} onChange={(e) => setWeekendReturn(e.target.value)}
+                className="mt-1 w-full rounded-xl border bg-background px-3 py-2.5 text-sm font-semibold outline-none focus:border-primary" />
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>,
+
+    // Step 4: Preferences & Restrictions
     <div key="prefs" className="space-y-5">
       <div className="text-center">
         <span className="text-4xl">🍽️</span>

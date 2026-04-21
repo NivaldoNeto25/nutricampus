@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useUser, CookingSkill } from "@/contexts/UserContext";
-import { User, Flame, Zap, Target, Dumbbell, Heart, Ban, Scale, Ruler, Pencil, ArrowRight, TrendingUp, TrendingDown, Minus, ChefHat } from "lucide-react";
+import { User, Flame, Zap, Target, Dumbbell, Heart, Ban, Scale, Ruler, Pencil, ArrowRight, TrendingUp, TrendingDown, Minus, ChefHat, Download } from "lucide-react";
 import {
   ChartContainer,
   ChartTooltip,
@@ -71,6 +71,46 @@ const ProfileTab = () => {
   const goalChanged = initialData && currentData ? initialData.goal !== currentData.goal : false;
   const skillChanged = initialData && currentData ? initialData.cookingSkill !== currentData.cookingSkill : false;
 
+  const exportReport = () => {
+    if (!initialData || !currentData) return;
+    const lines: string[] = [];
+    const date = new Date().toLocaleDateString("pt-BR");
+    lines.push("===== RELATÓRIO NUTRICAMPUS =====");
+    lines.push(`Gerado em: ${date}`);
+    lines.push("");
+    lines.push(`Nome: ${currentData.name}`);
+    lines.push(`Altura: ${currentData.height} cm`);
+    lines.push("");
+    lines.push("--- EVOLUÇÃO ---");
+    lines.push(`Peso inicial: ${initialData.weight} kg`);
+    lines.push(`Peso atual:   ${currentData.weight} kg`);
+    lines.push(`Variação:     ${weightDiff >= 0 ? "+" : ""}${weightDiff.toFixed(1)} kg`);
+    lines.push("");
+    lines.push(`Objetivo inicial:  ${initialData.goal}`);
+    lines.push(`Objetivo atual:    ${currentData.goal}`);
+    lines.push(`Habilidade inicial: ${initialData.cookingSkill}`);
+    lines.push(`Habilidade atual:   ${currentData.cookingSkill}`);
+    lines.push("");
+    lines.push("--- GAMIFICAÇÃO ---");
+    lines.push(`XP acumulado: ${progress.xp}`);
+    lines.push(`Streak: ${streak} dias`);
+    lines.push(`Progresso semanal: ${weeklyProgress}%`);
+    lines.push("");
+    lines.push("--- BADGES DESBLOQUEADAS ---");
+    badges.filter((b) => b.unlocked).forEach((b) => lines.push(`• ${b.emoji} ${b.title} — ${b.description}`));
+    if (!badges.some((b) => b.unlocked)) lines.push("(nenhuma ainda)");
+
+    const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `nutricampus-relatorio-${Date.now()}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="space-y-5 pb-4">
       {/* Header */}
@@ -101,7 +141,15 @@ const ProfileTab = () => {
       {/* Evolution Report */}
       {initialData && currentData && (
         <div className="rounded-xl border bg-card p-5 shadow-sm">
-          <h2 className="text-sm font-extrabold mb-3">📈 Relatório de Evolução</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-extrabold">📈 Relatório de Evolução</h2>
+            <button
+              onClick={exportReport}
+              className="flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[10px] font-extrabold text-primary-foreground hover:opacity-90 transition"
+            >
+              <Download className="h-3 w-3" /> Exportar
+            </button>
+          </div>
           <div className="space-y-3">
             <div className="flex items-center gap-3 rounded-lg bg-secondary p-3">
               <Scale className="h-5 w-5 text-primary shrink-0" />
