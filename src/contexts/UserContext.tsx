@@ -1,7 +1,14 @@
 import { createContext, useContext, useState, ReactNode, useMemo, useCallback } from "react";
-import { getMenuForProfile, DayPlan, Meal, MealType, getSubstitution } from "@/data/mockData";
+import { getMenuForProfile, DayPlan, Meal, MealType, getSubstitution, getSubstitutionOptions } from "@/data/mockData";
 
 export type CookingSkill = "Mínimo" | "Básico" | "Tranquilo";
+
+export interface RoutineSchedule {
+  weekdayLeave: string;   // ex "07:30"
+  weekdayReturn: string;  // ex "19:00"
+  weekendLeave: string;
+  weekendReturn: string;
+}
 
 export interface UserProfile {
   name: string;
@@ -13,6 +20,7 @@ export interface UserProfile {
   preferences: string[];
   restrictions: string[];
   cookingSkill: CookingSkill;
+  schedule?: RoutineSchedule;
 }
 
 export interface Badge {
@@ -49,6 +57,8 @@ interface UserContextType extends UserState {
   updateCurrentData: (partial: Partial<UserProfile>) => void;
   toggleMealCompletion: (dayIndex: number, mealIndex: number) => void;
   substituteMeal: (dayIndex: number, mealIndex: number) => void;
+  substituteMealWith: (dayIndex: number, mealIndex: number, newMeal: Meal) => void;
+  getSubstitutionChoices: (dayIndex: number, mealIndex: number) => Meal[];
   getWeeklyProgress: () => number;
   getTodayProgress: () => number;
   currentMenu: DayPlan[];
@@ -128,6 +138,23 @@ export function UserProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const substituteMealWith = (dayIndex: number, mealIndex: number, newMeal: Meal) => {
+    setState((prev) => {
+      const key = `${dayIndex}-${mealIndex}`;
+      return { ...prev, menuOverrides: { ...prev.menuOverrides, [key]: newMeal } };
+    });
+  };
+
+  const getSubstitutionChoices = useCallback(
+    (dayIndex: number, mealIndex: number): Meal[] => {
+      const meal = getEffectiveMeal(dayIndex, mealIndex);
+      const skill = state.currentData?.cookingSkill || "Básico";
+      const goal = state.currentData?.goal || "Mais energia";
+      return getSubstitutionOptions(meal.type as MealType, meal.title, skill, goal, 4);
+    },
+    [getEffectiveMeal, state.currentData?.cookingSkill, state.currentData?.goal]
+  );
+
   const toggleMealCompletion = (dayIndex: number, mealIndex: number) => {
     setState((prev) => {
       const totalMeals = currentMenu[dayIndex]?.meals.length || 5;
@@ -202,6 +229,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         updateCurrentData,
         toggleMealCompletion,
         substituteMeal,
+        substituteMealWith,
+        getSubstitutionChoices,
         getWeeklyProgress,
         getTodayProgress,
         currentMenu,
