@@ -1,6 +1,23 @@
 import { useState, useMemo } from "react";
 import { useUser } from "@/contexts/UserContext";
-import { ChefHat, Check, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChefHat, Check, Sparkles, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { MealType } from "@/data/mockData";
+
+const MEAL_TYPES: MealType[] = [
+  "Café da Manhã",
+  "Lanche da Manhã",
+  "Almoço",
+  "Lanche da Tarde",
+  "Jantar",
+];
+const TAB_LABELS: Record<MealType, string> = {
+  "Café da Manhã": "Café",
+  "Lanche da Manhã": "Lanche M.",
+  "Almoço": "Almoço",
+  "Lanche da Tarde": "Lanche T.",
+  "Jantar": "Jantar",
+};
 
 const MealPrepTab = () => {
   const { currentMenu, getEffectiveMeal } = useUser();
@@ -8,18 +25,30 @@ const MealPrepTab = () => {
   // Flatten all unique meals from the week (respecting overrides)
   const allMeals = useMemo(() => {
     const seen = new Set<string>();
-    const meals: { title: string; emoji: string; ingredients: string[]; prepSteps: string[]; dayIndex: number; mealIndex: number }[] = [];
+    const meals: { title: string; emoji: string; type: MealType; ingredients: string[]; prepSteps: string[]; dayIndex: number; mealIndex: number }[] = [];
     currentMenu.forEach((day, di) =>
       day.meals.forEach((_, mi) => {
         const m = getEffectiveMeal(di, mi);
         if (!seen.has(m.title) && m.prepSteps.length > 0) {
           seen.add(m.title);
-          meals.push({ title: m.title, emoji: m.emoji, ingredients: m.ingredients, prepSteps: m.prepSteps, dayIndex: di, mealIndex: mi });
+          meals.push({ title: m.title, emoji: m.emoji, type: m.type, ingredients: m.ingredients, prepSteps: m.prepSteps, dayIndex: di, mealIndex: mi });
         }
       })
     );
     return meals;
   }, [currentMenu, getEffectiveMeal]);
+
+  const mealsByType = useMemo(() => {
+    const map: Record<MealType, typeof allMeals> = {
+      "Café da Manhã": [], "Lanche da Manhã": [], "Almoço": [], "Lanche da Tarde": [], "Jantar": [],
+    };
+    allMeals.forEach((m) => map[m.type]?.push(m));
+    return map;
+  }, [allMeals]);
+
+  const defaultTab = useMemo<MealType>(() => {
+    return (MEAL_TYPES.find((t) => mealsByType[t].length > 0) || "Almoço") as MealType;
+  }, [mealsByType]);
 
   const [selectedMeals, setSelectedMeals] = useState<Set<string>>(new Set());
   const [generatedSteps, setGeneratedSteps] = useState<{ step: string; done: boolean }[] | null>(null);
