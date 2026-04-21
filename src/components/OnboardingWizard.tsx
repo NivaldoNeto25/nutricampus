@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useUser, UserProfile, CookingSkill, RoutineSchedule } from "@/contexts/UserContext";
-import { ChevronRight, ChevronLeft, UtensilsCrossed, Clock } from "lucide-react";
+import { useUser, UserProfile, CookingSkill, RoutineSchedule, RoutineType } from "@/contexts/UserContext";
+import { ChevronRight, ChevronLeft, UtensilsCrossed, GraduationCap, Briefcase, Sparkles } from "lucide-react";
 
 const goals = [
   { label: "Mais energia", emoji: "⚡" },
@@ -48,10 +48,11 @@ const OnboardingWizard = () => {
   const [preferences, setPreferences] = useState<string[]>([]);
   const [restrictions, setRestrictions] = useState<string[]>([]);
   const [cookingSkill, setCookingSkill] = useState<CookingSkill | "">("");
-  const [weekdayLeave, setWeekdayLeave] = useState("07:30");
-  const [weekdayReturn, setWeekdayReturn] = useState("19:00");
-  const [weekendLeave, setWeekendLeave] = useState("10:00");
-  const [weekendReturn, setWeekendReturn] = useState("22:00");
+  const [routineType, setRoutineType] = useState<RoutineType | "">("");
+  const [collegeStart, setCollegeStart] = useState("19:00");
+  const [collegeEnd, setCollegeEnd] = useState("22:30");
+  const [workStart, setWorkStart] = useState("08:00");
+  const [workEnd, setWorkEnd] = useState("17:00");
 
   const toggleArray = (arr: string[], val: string, setter: (v: string[]) => void) => {
     setter(arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val]);
@@ -61,7 +62,13 @@ const OnboardingWizard = () => {
     if (step === 0) return name.trim().length >= 2 && weight.trim() !== "" && height.trim() !== "";
     if (step === 1) return !!goal;
     if (step === 2) return !!routine && training.length > 0;
-    if (step === 3) return !!weekdayLeave && !!weekdayReturn && !!weekendLeave && !!weekendReturn;
+    if (step === 3) {
+      if (!routineType) return false;
+      if (routineType === "Só Estuda") return !!collegeStart && !!collegeEnd;
+      if (routineType === "Trabalha e Estuda")
+        return !!collegeStart && !!collegeEnd && !!workStart && !!workEnd;
+      return true; // "Outro"
+    }
     if (step === 4) return preferences.length > 0 && restrictions.length > 0;
     if (step === 5) return !!cookingSkill;
     return true;
@@ -69,7 +76,11 @@ const OnboardingWizard = () => {
 
   const handleFinish = () => {
     const schedule: RoutineSchedule = {
-      weekdayLeave, weekdayReturn, weekendLeave, weekendReturn,
+      routineType: (routineType || "Outro") as RoutineType,
+      ...(routineType === "Só Estuda" || routineType === "Trabalha e Estuda"
+        ? { collegeStart, collegeEnd }
+        : {}),
+      ...(routineType === "Trabalha e Estuda" ? { workStart, workEnd } : {}),
     };
     const profile: UserProfile = {
       name: name.trim(),
