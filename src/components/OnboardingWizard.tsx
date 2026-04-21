@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useUser, UserProfile, CookingSkill, RoutineSchedule } from "@/contexts/UserContext";
-import { ChevronRight, ChevronLeft, UtensilsCrossed, Clock } from "lucide-react";
+import { useUser, UserProfile, CookingSkill, RoutineSchedule, RoutineType } from "@/contexts/UserContext";
+import { ChevronRight, ChevronLeft, UtensilsCrossed, GraduationCap, Briefcase, Sparkles } from "lucide-react";
 
 const goals = [
   { label: "Mais energia", emoji: "⚡" },
@@ -48,10 +48,11 @@ const OnboardingWizard = () => {
   const [preferences, setPreferences] = useState<string[]>([]);
   const [restrictions, setRestrictions] = useState<string[]>([]);
   const [cookingSkill, setCookingSkill] = useState<CookingSkill | "">("");
-  const [weekdayLeave, setWeekdayLeave] = useState("07:30");
-  const [weekdayReturn, setWeekdayReturn] = useState("19:00");
-  const [weekendLeave, setWeekendLeave] = useState("10:00");
-  const [weekendReturn, setWeekendReturn] = useState("22:00");
+  const [routineType, setRoutineType] = useState<RoutineType | "">("");
+  const [collegeStart, setCollegeStart] = useState("19:00");
+  const [collegeEnd, setCollegeEnd] = useState("22:30");
+  const [workStart, setWorkStart] = useState("08:00");
+  const [workEnd, setWorkEnd] = useState("17:00");
 
   const toggleArray = (arr: string[], val: string, setter: (v: string[]) => void) => {
     setter(arr.includes(val) ? arr.filter((v) => v !== val) : [...arr, val]);
@@ -61,7 +62,13 @@ const OnboardingWizard = () => {
     if (step === 0) return name.trim().length >= 2 && weight.trim() !== "" && height.trim() !== "";
     if (step === 1) return !!goal;
     if (step === 2) return !!routine && training.length > 0;
-    if (step === 3) return !!weekdayLeave && !!weekdayReturn && !!weekendLeave && !!weekendReturn;
+    if (step === 3) {
+      if (!routineType) return false;
+      if (routineType === "Só Estuda") return !!collegeStart && !!collegeEnd;
+      if (routineType === "Trabalha e Estuda")
+        return !!collegeStart && !!collegeEnd && !!workStart && !!workEnd;
+      return true; // "Outro"
+    }
     if (step === 4) return preferences.length > 0 && restrictions.length > 0;
     if (step === 5) return !!cookingSkill;
     return true;
@@ -69,7 +76,11 @@ const OnboardingWizard = () => {
 
   const handleFinish = () => {
     const schedule: RoutineSchedule = {
-      weekdayLeave, weekdayReturn, weekendLeave, weekendReturn,
+      routineType: (routineType || "Outro") as RoutineType,
+      ...(routineType === "Só Estuda" || routineType === "Trabalha e Estuda"
+        ? { collegeStart, collegeEnd }
+        : {}),
+      ...(routineType === "Trabalha e Estuda" ? { workStart, workEnd } : {}),
     };
     const profile: UserProfile = {
       name: name.trim(),
@@ -203,44 +214,76 @@ const OnboardingWizard = () => {
       <div className="text-center">
         <span className="text-4xl">🕐</span>
         <h2 className="mt-2 text-lg font-extrabold">Como é a sua rotina?</h2>
-        <p className="text-sm text-muted-foreground">Vamos sincronizar suas refeições com seus horários.</p>
+        <p className="text-sm text-muted-foreground">Vamos sincronizar suas refeições com seus blocos fora de casa.</p>
       </div>
-      <div className="space-y-4">
-        <div className="rounded-xl border bg-card p-4">
+
+      <div className="grid grid-cols-3 gap-2">
+        {([
+          { label: "Só Estuda", icon: GraduationCap },
+          { label: "Trabalha e Estuda", icon: Briefcase },
+          { label: "Outro", icon: Sparkles },
+        ] as { label: RoutineType; icon: typeof GraduationCap }[]).map(({ label, icon: Icon }) => {
+          const active = routineType === label;
+          return (
+            <button
+              key={label}
+              onClick={() => setRoutineType(label)}
+              className={`flex flex-col items-center gap-1.5 rounded-xl border p-3 text-center transition-all duration-200 ${
+                active ? "border-primary bg-nutri-green-light shadow-sm" : "bg-card hover:shadow-sm"
+              }`}
+            >
+              <Icon className={`h-5 w-5 ${active ? "text-primary" : "text-muted-foreground"}`} />
+              <span className={`text-xs font-bold leading-tight ${active ? "text-primary" : ""}`}>{label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {(routineType === "Só Estuda" || routineType === "Trabalha e Estuda") && (
+        <div className="rounded-xl border bg-card p-4 animate-in fade-in slide-in-from-top-2 duration-200">
           <p className="text-sm font-extrabold mb-3 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-primary" /> Dias úteis (Seg–Sex)
+            <GraduationCap className="h-4 w-4 text-primary" /> Faculdade
           </p>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-bold text-muted-foreground">Saio de casa</label>
-              <input type="time" value={weekdayLeave} onChange={(e) => setWeekdayLeave(e.target.value)}
+              <label className="text-xs font-bold text-muted-foreground">Início</label>
+              <input type="time" value={collegeStart} onChange={(e) => setCollegeStart(e.target.value)}
                 className="mt-1 w-full rounded-xl border bg-background px-3 py-2.5 text-sm font-semibold outline-none focus:border-primary" />
             </div>
             <div>
-              <label className="text-xs font-bold text-muted-foreground">Volto p/ casa</label>
-              <input type="time" value={weekdayReturn} onChange={(e) => setWeekdayReturn(e.target.value)}
+              <label className="text-xs font-bold text-muted-foreground">Fim</label>
+              <input type="time" value={collegeEnd} onChange={(e) => setCollegeEnd(e.target.value)}
                 className="mt-1 w-full rounded-xl border bg-background px-3 py-2.5 text-sm font-semibold outline-none focus:border-primary" />
             </div>
           </div>
         </div>
-        <div className="rounded-xl border bg-card p-4">
+      )}
+
+      {routineType === "Trabalha e Estuda" && (
+        <div className="rounded-xl border bg-card p-4 animate-in fade-in slide-in-from-top-2 duration-200">
           <p className="text-sm font-extrabold mb-3 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-accent" /> Finais de semana
+            <Briefcase className="h-4 w-4 text-accent" /> Trabalho
           </p>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-bold text-muted-foreground">Saio de casa</label>
-              <input type="time" value={weekendLeave} onChange={(e) => setWeekendLeave(e.target.value)}
+              <label className="text-xs font-bold text-muted-foreground">Início</label>
+              <input type="time" value={workStart} onChange={(e) => setWorkStart(e.target.value)}
                 className="mt-1 w-full rounded-xl border bg-background px-3 py-2.5 text-sm font-semibold outline-none focus:border-primary" />
             </div>
             <div>
-              <label className="text-xs font-bold text-muted-foreground">Volto p/ casa</label>
-              <input type="time" value={weekendReturn} onChange={(e) => setWeekendReturn(e.target.value)}
+              <label className="text-xs font-bold text-muted-foreground">Fim</label>
+              <input type="time" value={workEnd} onChange={(e) => setWorkEnd(e.target.value)}
                 className="mt-1 w-full rounded-xl border bg-background px-3 py-2.5 text-sm font-semibold outline-none focus:border-primary" />
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {routineType === "Outro" && (
+        <p className="text-center text-xs text-muted-foreground">
+          Sem horários fixos — vamos usar uma janela padrão para suas refeições.
+        </p>
+      )}
     </div>,
 
     // Step 4: Preferences & Restrictions

@@ -33,11 +33,22 @@ const MenuTab = () => {
   const daysCompleted = Object.keys(mealCompletions).length;
   const progressPct = Math.round((daysCompleted / 7) * 100);
 
-  // Compute meal times based on user's routine schedule
+  // Compute meal times based on user's routine schedule.
+  // Derive "leave" = earliest activity start, "back" = latest activity end.
   const isWeekend = dayIndex >= 5;
   const sched = profile?.schedule;
-  const leave = sched ? (isWeekend ? sched.weekendLeave : sched.weekdayLeave) : "07:30";
-  const back = sched ? (isWeekend ? sched.weekendReturn : sched.weekdayReturn) : "19:00";
+  const pickEarliest = (arr: (string | undefined)[]) =>
+    arr.filter(Boolean).sort()[0];
+  const pickLatest = (arr: (string | undefined)[]) =>
+    arr.filter(Boolean).sort().pop();
+  const leave =
+    (!isWeekend && sched
+      ? pickEarliest([sched.workStart, sched.collegeStart, sched.weekdayLeave])
+      : undefined) || "08:30";
+  const back =
+    (!isWeekend && sched
+      ? pickLatest([sched.workEnd, sched.collegeEnd, sched.weekdayReturn])
+      : undefined) || (isWeekend ? "20:00" : "19:00");
 
   const toMin = (t: string) => {
     const [h, m] = t.split(":").map(Number);

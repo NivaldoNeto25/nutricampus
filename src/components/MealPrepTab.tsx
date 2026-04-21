@@ -1,6 +1,23 @@
 import { useState, useMemo } from "react";
 import { useUser } from "@/contexts/UserContext";
-import { ChefHat, Check, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChefHat, Check, Sparkles, ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { MealType } from "@/data/mockData";
+
+const MEAL_TYPES: MealType[] = [
+  "Café da Manhã",
+  "Lanche da Manhã",
+  "Almoço",
+  "Lanche da Tarde",
+  "Jantar",
+];
+const TAB_LABELS: Record<MealType, string> = {
+  "Café da Manhã": "Café",
+  "Lanche da Manhã": "Lanche M.",
+  "Almoço": "Almoço",
+  "Lanche da Tarde": "Lanche T.",
+  "Jantar": "Jantar",
+};
 
 const MealPrepTab = () => {
   const { currentMenu, getEffectiveMeal } = useUser();
@@ -8,18 +25,30 @@ const MealPrepTab = () => {
   // Flatten all unique meals from the week (respecting overrides)
   const allMeals = useMemo(() => {
     const seen = new Set<string>();
-    const meals: { title: string; emoji: string; ingredients: string[]; prepSteps: string[]; dayIndex: number; mealIndex: number }[] = [];
+    const meals: { title: string; emoji: string; type: MealType; ingredients: string[]; prepSteps: string[]; dayIndex: number; mealIndex: number }[] = [];
     currentMenu.forEach((day, di) =>
       day.meals.forEach((_, mi) => {
         const m = getEffectiveMeal(di, mi);
         if (!seen.has(m.title) && m.prepSteps.length > 0) {
           seen.add(m.title);
-          meals.push({ title: m.title, emoji: m.emoji, ingredients: m.ingredients, prepSteps: m.prepSteps, dayIndex: di, mealIndex: mi });
+          meals.push({ title: m.title, emoji: m.emoji, type: m.type, ingredients: m.ingredients, prepSteps: m.prepSteps, dayIndex: di, mealIndex: mi });
         }
       })
     );
     return meals;
   }, [currentMenu, getEffectiveMeal]);
+
+  const mealsByType = useMemo(() => {
+    const map: Record<MealType, typeof allMeals> = {
+      "Café da Manhã": [], "Lanche da Manhã": [], "Almoço": [], "Lanche da Tarde": [], "Jantar": [],
+    };
+    allMeals.forEach((m) => map[m.type]?.push(m));
+    return map;
+  }, [allMeals]);
+
+  const defaultTab = useMemo<MealType>(() => {
+    return (MEAL_TYPES.find((t) => mealsByType[t].length > 0) || "Almoço") as MealType;
+  }, [mealsByType]);
 
   const [selectedMeals, setSelectedMeals] = useState<Set<string>>(new Set());
   const [generatedSteps, setGeneratedSteps] = useState<{ step: string; done: boolean }[] | null>(null);
@@ -86,47 +115,85 @@ const MealPrepTab = () => {
 
       {!generatedSteps ? (
         <>
-          <div>
-            <h2 className="text-sm font-extrabold mb-3">🍽️ Selecione os pratos para preparar:</h2>
-            <div className="space-y-2">
-              {allMeals.map((meal) => {
-                const isSelected = selectedMeals.has(meal.title);
-                return (
-                  <button
-                    key={meal.title}
-                    onClick={() => toggleMeal(meal.title)}
-                    className={`flex w-full items-center gap-3 rounded-xl border p-3 text-left transition-all duration-200 ${
-                      isSelected ? "border-primary bg-nutri-green-light" : "bg-card hover:shadow-sm"
-                    }`}
-                  >
-                    <div className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2 transition-all duration-200 ${
-                      isSelected ? "border-primary bg-primary" : "border-muted-foreground/30"
-                    }`}>
-                      {isSelected && <Check className="h-3 w-3 text-primary-foreground" />}
+          <div className="pb-24">
+            <h2 className="text-sm font-extrabold mb-3">🍽️ Selecione os pratos por refeição:</h2>
+            <Tabs defaultValue={defaultTab}>
+              <TabsList className="w-full justify-between overflow-x-auto h-auto p-1 bg-secondary">
+                {MEAL_TYPES.map((t) => {
+                  const count = mealsByType[t].length;
+                  const selectedHere = mealsByType[t].filter((m) => selectedMeals.has(m.title)).length;
+                  return (
+                    <TabsTrigger
+                      key={t}
+                      value={t}
+                      disabled={count === 0}
+                      className="relative flex-1 text-[11px] font-bold px-2 py-2 data-[state=active]:bg-background"
+                    >
+                      {TAB_LABELS[t]}
+                      {selectedHere > 0 && (
+                        <span className="ml-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-extrabold text-primary-foreground">
+                          {selectedHere}
+                        </span>
+                      )}
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+
+              {MEAL_TYPES.map((t) => (
+                <TabsContent key={t} value={t} className="mt-4">
+                  {mealsByType[t].length === 0 ? (
+                    <p className="rounded-xl border bg-card p-4 text-center text-xs text-muted-foreground">
+                      Sem pratos para preparar nesta categoria.
+                    </p>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-3">
+                      {mealsByType[t].map((meal) => {
+                        const isSelected = selectedMeals.has(meal.title);
+                        return (
+                          <button
+                            key={meal.title}
+                            onClick={() => toggleMeal(meal.title)}
+                            className={`relative flex flex-col items-start gap-2 rounded-xl border-2 p-3 text-left transition-all duration-200 ${
+                              isSelected
+                                ? "border-primary bg-nutri-green-light shadow-md scale-[0.98]"
+                                : "border-border bg-card hover:border-primary/40 hover:shadow-sm"
+                            }`}
+                          >
+                            {isSelected && (
+                              <div className="absolute top-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow">
+                                <Check className="h-4 w-4" strokeWidth={3} />
+                              </div>
+                            )}
+                            <span className="text-3xl">{meal.emoji}</span>
+                            <p className="text-xs font-extrabold leading-tight line-clamp-2">{meal.title}</p>
+                            <p className="text-[10px] text-muted-foreground line-clamp-2">
+                              {meal.ingredients.slice(0, 3).join(", ")}
+                            </p>
+                          </button>
+                        );
+                      })}
                     </div>
-                    <span className="text-xl">{meal.emoji}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold truncate">{meal.title}</p>
-                      <p className="text-[10px] text-muted-foreground">{meal.ingredients.slice(0, 3).join(", ")}...</p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                  )}
+                </TabsContent>
+              ))}
+            </Tabs>
           </div>
 
-          <button
-            onClick={generateSteps}
-            disabled={selectedMeals.size === 0}
-            className={`flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold transition-all duration-200 ${
-              selectedMeals.size > 0
-                ? "bg-primary text-primary-foreground shadow-md hover:opacity-90"
-                : "bg-muted text-muted-foreground cursor-not-allowed"
-            }`}
-          >
-            <Sparkles className="h-4 w-4" />
-            Gerar Passo a Passo ({selectedMeals.size} selecionados)
-          </button>
+          {/* Floating action button */}
+          {selectedMeals.size > 0 && (
+            <div className="fixed inset-x-0 bottom-20 z-40 px-4 animate-in fade-in slide-in-from-bottom-4 duration-200">
+              <div className="mx-auto max-w-md">
+                <button
+                  onClick={generateSteps}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-sm font-extrabold text-primary-foreground shadow-lg ring-4 ring-primary/15 hover:opacity-90 transition"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  Iniciar Preparo ({selectedMeals.size} {selectedMeals.size === 1 ? "item selecionado" : "itens selecionados"})
+                </button>
+              </div>
+            </div>
+          )}
         </>
       ) : (
         <>

@@ -3,11 +3,17 @@ import { getMenuForProfile, DayPlan, Meal, MealType, getSubstitution, getSubstit
 
 export type CookingSkill = "Mínimo" | "Básico" | "Tranquilo";
 
+export type RoutineType = "Só Estuda" | "Trabalha e Estuda" | "Outro";
+
 export interface RoutineSchedule {
-  weekdayLeave: string;   // ex "07:30"
-  weekdayReturn: string;  // ex "19:00"
-  weekendLeave: string;
-  weekendReturn: string;
+  routineType: RoutineType;
+  collegeStart?: string;   // ex "19:00"
+  collegeEnd?: string;     // ex "22:30"
+  workStart?: string;      // ex "08:00"
+  workEnd?: string;        // ex "17:00"
+  // Legacy fallbacks (kept for compatibility with adaptive meal times)
+  weekdayLeave?: string;
+  weekdayReturn?: string;
 }
 
 export interface UserProfile {

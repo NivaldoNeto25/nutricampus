@@ -124,8 +124,14 @@ const ProfileTab = () => {
     y += 8;
     section("Rotina");
     if (currentData.schedule) {
-      row("Dias uteis:", `${currentData.schedule.weekdayLeave} - ${currentData.schedule.weekdayReturn}`);
-      row("Fim de semana:", `${currentData.schedule.weekendLeave} - ${currentData.schedule.weekendReturn}`);
+      const s = currentData.schedule;
+      row("Tipo de rotina:", s.routineType || "Nao informado");
+      if (s.collegeStart && s.collegeEnd) {
+        row("Faculdade:", `${s.collegeStart} - ${s.collegeEnd}`);
+      }
+      if (s.workStart && s.workEnd) {
+        row("Trabalho:", `${s.workStart} - ${s.workEnd}`);
+      }
     } else {
       row("Rotina:", "Nao informada");
     }
