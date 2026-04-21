@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useUser } from "@/contexts/UserContext";
-import { ChefHat, Check, Sparkles } from "lucide-react";
+import { ChefHat, Check, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 
 const MealPrepTab = () => {
   const { currentMenu, getEffectiveMeal } = useUser();
@@ -23,6 +23,7 @@ const MealPrepTab = () => {
 
   const [selectedMeals, setSelectedMeals] = useState<Set<string>>(new Set());
   const [generatedSteps, setGeneratedSteps] = useState<{ step: string; done: boolean }[] | null>(null);
+  const [currentStep, setCurrentStep] = useState(0);
 
   const toggleMeal = (title: string) => {
     setSelectedMeals((prev) => {
@@ -50,6 +51,7 @@ const MealPrepTab = () => {
     steps.push(`${stepNum}. Monte os potes, etiquete com o dia da semana e guarde na geladeira/freezer 📦`);
 
     setGeneratedSteps(steps.map((s) => ({ step: s, done: false })));
+    setCurrentStep(0);
   };
 
   const toggleStep = (index: number) => {
