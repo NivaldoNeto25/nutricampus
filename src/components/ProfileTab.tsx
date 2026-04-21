@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useUser, CookingSkill } from "@/contexts/UserContext";
 import { User, Flame, Zap, Target, Dumbbell, Heart, Ban, Scale, Ruler, Pencil, ArrowRight, TrendingUp, TrendingDown, Minus, ChefHat, Download } from "lucide-react";
+import jsPDF from "jspdf";
 import {
   ChartContainer,
   ChartTooltip,
@@ -73,42 +74,96 @@ const ProfileTab = () => {
 
   const exportReport = () => {
     if (!initialData || !currentData) return;
-    const lines: string[] = [];
+    const doc = new jsPDF({ unit: "pt", format: "a4" });
+    const pageW = doc.internal.pageSize.getWidth();
+    const margin = 48;
+    let y = margin;
     const date = new Date().toLocaleDateString("pt-BR");
-    lines.push("===== RELATÓRIO NUTRICAMPUS =====");
-    lines.push(`Gerado em: ${date}`);
-    lines.push("");
-    lines.push(`Nome: ${currentData.name}`);
-    lines.push(`Altura: ${currentData.height} cm`);
-    lines.push("");
-    lines.push("--- EVOLUÇÃO ---");
-    lines.push(`Peso inicial: ${initialData.weight} kg`);
-    lines.push(`Peso atual:   ${currentData.weight} kg`);
-    lines.push(`Variação:     ${weightDiff >= 0 ? "+" : ""}${weightDiff.toFixed(1)} kg`);
-    lines.push("");
-    lines.push(`Objetivo inicial:  ${initialData.goal}`);
-    lines.push(`Objetivo atual:    ${currentData.goal}`);
-    lines.push(`Habilidade inicial: ${initialData.cookingSkill}`);
-    lines.push(`Habilidade atual:   ${currentData.cookingSkill}`);
-    lines.push("");
-    lines.push("--- GAMIFICAÇÃO ---");
-    lines.push(`XP acumulado: ${progress.xp}`);
-    lines.push(`Streak: ${streak} dias`);
-    lines.push(`Progresso semanal: ${weeklyProgress}%`);
-    lines.push("");
-    lines.push("--- BADGES DESBLOQUEADAS ---");
-    badges.filter((b) => b.unlocked).forEach((b) => lines.push(`• ${b.emoji} ${b.title} — ${b.description}`));
-    if (!badges.some((b) => b.unlocked)) lines.push("(nenhuma ainda)");
 
-    const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `nutricampus-relatorio-${Date.now()}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Header band
+    doc.setFillColor(34, 139, 79);
+    doc.rect(0, 0, pageW, 70, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.text("NutriCampus", margin, 32);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("Relatorio de Progresso", margin, 50);
+    doc.text(`Gerado em ${date}`, pageW - margin, 50, { align: "right" });
+
+    y = 100;
+    doc.setTextColor(20, 20, 20);
+
+    const section = (title: string) => {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(34, 139, 79);
+      doc.text(title, margin, y);
+      y += 8;
+      doc.setDrawColor(220, 220, 220);
+      doc.line(margin, y, pageW - margin, y);
+      y += 16;
+      doc.setTextColor(20, 20, 20);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(11);
+    };
+
+    const row = (label: string, value: string) => {
+      doc.setFont("helvetica", "bold");
+      doc.text(label, margin, y);
+      doc.setFont("helvetica", "normal");
+      doc.text(value, margin + 180, y);
+      y += 18;
+    };
+
+    section("Dados do Usuario");
+    row("Nome:", currentData.name);
+    row("Altura:", `${currentData.height} cm`);
+
+    y += 8;
+    section("Rotina");
+    if (currentData.schedule) {
+      row("Dias uteis:", `${currentData.schedule.weekdayLeave} - ${currentData.schedule.weekdayReturn}`);
+      row("Fim de semana:", `${currentData.schedule.weekendLeave} - ${currentData.schedule.weekendReturn}`);
+    } else {
+      row("Rotina:", "Nao informada");
+    }
+
+    y += 8;
+    section("Evolucao");
+    row("Peso inicial:", `${initialData.weight} kg`);
+    row("Peso atual:", `${currentData.weight} kg`);
+    row("Variacao:", `${weightDiff >= 0 ? "+" : ""}${weightDiff.toFixed(1)} kg`);
+    row("Objetivo inicial:", initialData.goal);
+    row("Objetivo atual:", currentData.goal);
+    row("Habilidade inicial:", initialData.cookingSkill);
+    row("Habilidade atual:", currentData.cookingSkill);
+
+    y += 8;
+    section("Gamificacao");
+    row("XP acumulado:", `${progress.xp}`);
+    row("Streak:", `${streak} dias`);
+    row("Progresso semanal:", `${weeklyProgress}%`);
+
+    y += 8;
+    section("Badges Desbloqueadas");
+    const unlocked = badges.filter((b) => b.unlocked);
+    if (unlocked.length === 0) {
+      doc.text("(nenhuma ainda)", margin, y);
+      y += 18;
+    } else {
+      unlocked.forEach((b) => {
+        if (y > 780) { doc.addPage(); y = margin; }
+        doc.setFont("helvetica", "bold");
+        doc.text(`- ${b.title}`, margin, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(b.description, margin + 180, y);
+        y += 16;
+      });
+    }
+
+    doc.save(`nutricampus-relatorio-${Date.now()}.pdf`);
   };
 
   return (
