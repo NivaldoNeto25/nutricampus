@@ -130,28 +130,77 @@ const MealPrepTab = () => {
         </>
       ) : (
         <>
-          <div className="space-y-3">
-            {generatedSteps.map((step, i) => (
-              <button
-                key={i}
-                onClick={() => toggleStep(i)}
-                className={`w-full rounded-xl border p-4 text-left transition-all duration-200 ${
-                  step.done ? "border-nutri-success/30 bg-nutri-green-light" : "bg-card hover:shadow-sm"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <div className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 text-xs font-bold transition-all duration-200 ${
-                    step.done ? "border-nutri-success bg-nutri-success text-primary-foreground" : "border-primary text-primary"
-                  }`}>
-                    {step.done ? <Check className="h-4 w-4" /> : i + 1}
-                  </div>
-                  <p className={`text-sm font-semibold leading-tight transition-all duration-200 ${step.done ? "line-through opacity-50" : ""}`}>
-                    {step.step.replace(/^\d+\.\s*/, "")}
-                  </p>
+          {(() => {
+            const step = generatedSteps[currentStep];
+            const isLast = currentStep === totalSteps - 1;
+            return (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-xs font-bold text-muted-foreground">
+                  <span>Passo {currentStep + 1} de {totalSteps}</span>
+                  <span>{doneCount} concluídos</span>
                 </div>
-              </button>
-            ))}
-          </div>
+
+                <div className={`rounded-2xl border p-6 min-h-[180px] flex flex-col justify-between transition-all ${
+                  step.done ? "border-nutri-success/40 bg-nutri-green-light" : "bg-card shadow-sm"
+                }`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 text-base font-extrabold ${
+                      step.done ? "border-nutri-success bg-nutri-success text-primary-foreground" : "border-primary text-primary"
+                    }`}>
+                      {step.done ? <Check className="h-5 w-5" /> : currentStep + 1}
+                    </div>
+                    <p className={`text-base font-semibold leading-snug ${step.done ? "line-through opacity-60" : ""}`}>
+                      {step.step.replace(/^\d+\.\s*/, "")}
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => toggleStep(currentStep)}
+                    className={`mt-5 w-full rounded-xl py-2.5 text-sm font-bold transition-all ${
+                      step.done
+                        ? "bg-muted text-muted-foreground"
+                        : "bg-primary text-primary-foreground hover:opacity-90"
+                    }`}
+                  >
+                    {step.done ? "Desmarcar" : "Marcar como feito ✓"}
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentStep((s) => Math.max(0, s - 1))}
+                    disabled={currentStep === 0}
+                    className="flex h-12 w-12 items-center justify-center rounded-xl border bg-card disabled:opacity-40 hover:bg-secondary transition"
+                    aria-label="Passo anterior"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <button
+                    onClick={() => setCurrentStep((s) => Math.min(totalSteps - 1, s + 1))}
+                    disabled={isLast}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-40 hover:opacity-90 transition"
+                  >
+                    Próximo passo <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {/* Step dots */}
+                <div className="flex flex-wrap justify-center gap-1.5 pt-1">
+                  {generatedSteps.map((s, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrentStep(i)}
+                      aria-label={`Ir para passo ${i + 1}`}
+                      className={`h-2 rounded-full transition-all ${
+                        i === currentStep ? "w-6 bg-primary" :
+                        s.done ? "w-2 bg-nutri-success" : "w-2 bg-muted"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
 
           <button
             onClick={() => { setGeneratedSteps(null); setSelectedMeals(new Set()); }}
