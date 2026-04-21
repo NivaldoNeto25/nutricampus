@@ -162,28 +162,12 @@ const OnboardingWizard = () => {
       </div>
     </div>,
 
-    // Step 2: Routine + Training
-    <div key="routine" className="space-y-5">
+    // Step 2: Training
+    <div key="training" className="space-y-5">
       <div className="text-center">
-        <span className="text-4xl">📅</span>
-        <h2 className="mt-2 text-lg font-extrabold">Sua rotina semanal</h2>
-      </div>
-      <div>
-        <p className="text-sm font-bold mb-2">Como é seu dia a dia?</p>
-        <div className="space-y-2">
-          {routines.map((r) => (
-            <button
-              key={r.label}
-              onClick={() => setRoutine(r.label)}
-              className={`flex w-full items-center gap-3 rounded-xl border p-3 transition-all duration-200 ${
-                routine === r.label ? "border-primary bg-nutri-green-light" : "bg-card hover:shadow-sm"
-              }`}
-            >
-              <span className="text-xl">{r.emoji}</span>
-              <span className="font-semibold text-sm">{r.label}</span>
-            </button>
-          ))}
-        </div>
+        <span className="text-4xl">🏋️</span>
+        <h2 className="mt-2 text-lg font-extrabold">Atividade física</h2>
+        <p className="text-sm text-muted-foreground">Selecione o que faz parte da sua semana</p>
       </div>
       <div>
         <p className="text-sm font-bold mb-2">Tipo de treino (selecione todos)</p>
