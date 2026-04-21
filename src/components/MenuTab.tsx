@@ -145,6 +145,19 @@ const MenuTab = () => {
                           {time}
                         </span>
                       )}
+                      {time && (
+                        isOccupied(time) ? (
+                          <span className="flex items-center gap-0.5 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold text-accent">
+                            <Backpack className="h-3 w-3" />
+                            Levar na mochila
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-0.5 rounded-full bg-nutri-green-light px-2 py-0.5 text-[10px] font-bold text-primary">
+                            <Home className="h-3 w-3" />
+                            Comer em casa
+                          </span>
+                        )
+                      )}
                       <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
                         <Flame className="h-3 w-3" />
                         {meal.calories} kcal
