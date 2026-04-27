@@ -1,5 +1,6 @@
 export type MealType = "Café da Manhã" | "Lanche da Manhã" | "Almoço" | "Lanche da Tarde" | "Jantar";
 export type CookingSkill = "Mínimo" | "Básico" | "Tranquilo";
+export type DietType = "Onívoro" | "Vegetariano" | "Vegano";
 
 export interface Meal {
   type: MealType;
@@ -10,6 +11,8 @@ export interface Meal {
   ingredients: string[];
   prepSteps: string[];
   skill: CookingSkill;
+  // Quais dietas esta receita atende. Se omitido, assume-se "Onívoro".
+  diets?: DietType[];
 }
 
 export interface DayPlan {
@@ -126,6 +129,41 @@ const massaExtras: Meal[] = [
 
 const allRecipes = [...recipePool, ...massaExtras];
 
+// ─── CLASSIFICAÇÃO DE INGREDIENTES POR DIETA ───
+const ANIMAL_PROTEIN = new Set([
+  "Peito de frango", "Coxa de frango", "Carne moída", "Atum", "Salmão", "Filé de tilápia",
+]);
+const ANIMAL_DERIVED = new Set([
+  "Ovos", "Ovo", "Ovo cozido", "Claras de ovo", "Whey protein",
+  "Iogurte natural", "Iogurte grego", "Cottage", "Queijo branco", "Queijo",
+  "Queijo parmesão", "Leite", "Leite integral", "Creme de leite light",
+  "Requeijão light", "Mel", "Manteiga", "Maionese light",
+]);
+
+function recipeMatchesDiet(meal: Meal, diet: DietType): boolean {
+  if (diet === "Onívoro") return true;
+  const hasAnimalProtein = meal.ingredients.some((i) => ANIMAL_PROTEIN.has(i));
+  if (hasAnimalProtein) return false;
+  if (diet === "Vegetariano") return true;
+  // Vegano: também sem derivados animais
+  return !meal.ingredients.some((i) => ANIMAL_DERIVED.has(i));
+}
+
+// ─── RECEITAS VEG / VEGANAS COMPLEMENTARES ───
+const vegRecipes: Meal[] = [
+  { type: "Café da Manhã", title: "Tapioca com pasta de amendoim e banana", description: "Vegano e energético", emoji: "🫓", calories: 320, ingredients: ["Goma de tapioca", "Pasta de amendoim", "Banana"], prepSteps: ["Faça a tapioca na frigideira", "Recheie com pasta de amendoim e banana"], skill: "Básico", diets: ["Vegano", "Vegetariano"] },
+  { type: "Café da Manhã", title: "Vitamina vegana de aveia", description: "Sem leite animal", emoji: "🥤", calories: 290, ingredients: ["Aveia", "Banana", "Pasta de amendoim", "Leite de coco"], prepSteps: ["Bata tudo no liquidificador"], skill: "Mínimo", diets: ["Vegano", "Vegetariano"] },
+  { type: "Lanche da Manhã", title: "Hummus com cenoura", description: "Proteína vegetal", emoji: "🥕", calories: 180, ingredients: ["Grão-de-bico", "Tahine", "Limão", "Cenoura"], prepSteps: ["Bata grão-de-bico com tahine e limão", "Sirva com palitos de cenoura"], skill: "Básico", diets: ["Vegano", "Vegetariano"] },
+  { type: "Almoço", title: "Bowl de lentilha com legumes", description: "Rico em ferro vegetal", emoji: "🥗", calories: 470, ingredients: ["Lentilha", "Arroz integral", "Cenoura", "Espinafre", "Azeite"], prepSteps: ["Cozinhe a lentilha", "Cozinhe o arroz", "Refogue os legumes", "Monte o bowl"], skill: "Básico", diets: ["Vegano", "Vegetariano"] },
+  { type: "Almoço", title: "Curry de grão-de-bico", description: "Proteína vegetal cremosa", emoji: "🍛", calories: 510, ingredients: ["Grão-de-bico", "Arroz integral", "Leite de coco", "Curry", "Cebola", "Alho"], prepSteps: ["Refogue cebola e alho", "Adicione grão-de-bico, leite de coco e curry", "Sirva com arroz"], skill: "Tranquilo", diets: ["Vegano", "Vegetariano"] },
+  { type: "Almoço", title: "Macarrão integral ao sugo com lentilha", description: "Bolonhesa vegetal", emoji: "🍝", calories: 490, ingredients: ["Macarrão integral", "Lentilha", "Molho de tomate", "Cebola", "Alho"], prepSteps: ["Cozinhe a lentilha", "Refogue cebola e alho com molho de tomate e lentilha", "Sirva sobre o macarrão"], skill: "Básico", diets: ["Vegano", "Vegetariano"] },
+  { type: "Lanche da Tarde", title: "Mix de castanhas e frutas secas", description: "Energia 100% vegetal", emoji: "🥜", calories: 200, ingredients: ["Castanha de caju", "Castanha-do-pará", "Uva"], prepSteps: ["Combine 30g do mix"], skill: "Mínimo", diets: ["Vegano", "Vegetariano"] },
+  { type: "Jantar", title: "Sopa de feijão com legumes", description: "Reconfortante e proteica", emoji: "🥣", calories: 380, ingredients: ["Feijão", "Cenoura", "Batata", "Cebola", "Alho", "Azeite"], prepSteps: ["Refogue cebola e alho", "Adicione feijão e legumes", "Cozinhe até amaciar"], skill: "Básico", diets: ["Vegano", "Vegetariano"] },
+  { type: "Jantar", title: "Wrap de homus e vegetais", description: "Leve e vegano", emoji: "🌯", calories: 360, ingredients: ["Tortilla integral", "Grão-de-bico", "Tahine", "Alface", "Tomate", "Cenoura"], prepSteps: ["Faça homus rápido", "Espalhe na tortilla com vegetais e enrole"], skill: "Mínimo", diets: ["Vegano", "Vegetariano"] },
+  { type: "Jantar", title: "Tofu grelhado com legumes", description: "Proteína vegetal completa", emoji: "🥗", calories: 410, ingredients: ["Tofu", "Arroz integral", "Brócolis", "Molho shoyu", "Azeite"], prepSteps: ["Tempere e grelhe o tofu", "Cozinhe arroz", "Refogue brócolis", "Monte o prato"], skill: "Tranquilo", diets: ["Vegano", "Vegetariano"] },
+];
+allRecipes.push(...vegRecipes);
+
 const dayNames = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado", "Domingo"];
 const shortDayNames = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 const mealTypes: MealType[] = ["Café da Manhã", "Lanche da Manhã", "Almoço", "Lanche da Tarde", "Jantar"];
@@ -140,12 +178,14 @@ const massaTrainingNotes = [
   "😴 Descanso ativo",
 ];
 
-function getRecipesForSlot(type: MealType, goal: string, skill: CookingSkill): Meal[] {
+function getRecipesForSlot(type: MealType, goal: string, skill: CookingSkill, diet: DietType = "Onívoro"): Meal[] {
   const skillOrder: CookingSkill[] = ["Mínimo", "Básico", "Tranquilo"];
   const maxIndex = skillOrder.indexOf(skill);
   const allowedSkills = skillOrder.slice(0, maxIndex + 1);
 
-  let pool = allRecipes.filter((r) => r.type === type && allowedSkills.includes(r.skill));
+  let pool = allRecipes.filter(
+    (r) => r.type === type && allowedSkills.includes(r.skill) && recipeMatchesDiet(r, diet)
+  );
 
   // For "Ganhar massa", prefer higher calorie options
   if (goal === "Ganhar massa") {
@@ -161,7 +201,7 @@ function getRecipesForSlot(type: MealType, goal: string, skill: CookingSkill): M
   return pool;
 }
 
-export function getMenuForProfile(goal: string, skill: CookingSkill): DayPlan[] {
+export function getMenuForProfile(goal: string, skill: CookingSkill, diet: DietType = "Onívoro"): DayPlan[] {
   const plans: DayPlan[] = [];
 
   for (let d = 0; d < 7; d++) {
@@ -169,13 +209,15 @@ export function getMenuForProfile(goal: string, skill: CookingSkill): DayPlan[] 
     const usedTitles = new Set<string>();
 
     for (const type of mealTypes) {
-      const candidates = getRecipesForSlot(type, goal, skill);
+      const candidates = getRecipesForSlot(type, goal, skill, diet);
       // Pick a recipe not yet used this day
       let pick = candidates.find((c) => !usedTitles.has(c.title));
       if (!pick) pick = candidates[d % candidates.length];
       if (!pick) {
         // fallback: any recipe of this type
-        pick = allRecipes.find((r) => r.type === type) || allRecipes[0];
+        pick = allRecipes.find((r) => r.type === type && recipeMatchesDiet(r, diet)) ||
+               allRecipes.find((r) => r.type === type) ||
+               allRecipes[0];
       }
       usedTitles.add(pick.title);
       meals.push(pick);
@@ -193,7 +235,7 @@ export function getMenuForProfile(goal: string, skill: CookingSkill): DayPlan[] 
   for (let d = 1; d < 7; d++) {
     for (let m = 0; m < mealTypes.length; m++) {
       const type = mealTypes[m];
-      const candidates = getRecipesForSlot(type, goal, skill);
+      const candidates = getRecipesForSlot(type, goal, skill, diet);
       if (candidates.length > 1) {
         const idx = (d + m) % candidates.length;
         plans[d].meals[m] = candidates[idx];
@@ -204,13 +246,13 @@ export function getMenuForProfile(goal: string, skill: CookingSkill): DayPlan[] 
   return plans;
 }
 
-export function getSubstitution(type: MealType, currentTitle: string, skill: CookingSkill): Meal | null {
+export function getSubstitution(type: MealType, currentTitle: string, skill: CookingSkill, diet: DietType = "Onívoro"): Meal | null {
   const skillOrder: CookingSkill[] = ["Mínimo", "Básico", "Tranquilo"];
   const maxIndex = skillOrder.indexOf(skill);
   const allowedSkills = skillOrder.slice(0, maxIndex + 1);
 
   const candidates = allRecipes.filter(
-    (r) => r.type === type && allowedSkills.includes(r.skill) && r.title !== currentTitle
+    (r) => r.type === type && allowedSkills.includes(r.skill) && r.title !== currentTitle && recipeMatchesDiet(r, diet)
   );
   if (candidates.length === 0) return null;
   return candidates[Math.floor(Math.random() * candidates.length)];
@@ -221,14 +263,15 @@ export function getSubstitutionOptions(
   currentTitle: string,
   skill: CookingSkill,
   goal: string,
-  count = 4
+  count = 4,
+  diet: DietType = "Onívoro"
 ): Meal[] {
   const skillOrder: CookingSkill[] = ["Mínimo", "Básico", "Tranquilo"];
   const maxIndex = skillOrder.indexOf(skill);
   const allowedSkills = skillOrder.slice(0, maxIndex + 1);
 
   let candidates = allRecipes.filter(
-    (r) => r.type === type && allowedSkills.includes(r.skill) && r.title !== currentTitle
+    (r) => r.type === type && allowedSkills.includes(r.skill) && r.title !== currentTitle && recipeMatchesDiet(r, diet)
   );
   if (goal === "Ganhar massa") {
     const high = candidates.filter((c) => c.calories >= 350);
@@ -331,6 +374,8 @@ const defaultQuantities: Record<string, IngredientQuantity> = {
   "Maionese light": { amount: 10, unit: "g" },
   "Caldo de legumes": { amount: 200, unit: "ml" },
   "Sopa instantânea": { amount: 1, unit: "un" },
+  "Tofu": { amount: 150, unit: "g" },
+  "Brócolis": { amount: 100, unit: "g" },
   // Temperos
   "Curry": { amount: 1, unit: "pitada" },
   "Canela": { amount: 1, unit: "pitada" },

@@ -20,7 +20,9 @@ const TAB_LABELS: Record<MealType, string> = {
 };
 
 const MealPrepTab = () => {
-  const { currentMenu, getEffectiveMeal } = useUser();
+  const { currentMenu, getEffectiveMeal, prepSelectedMeals, togglePrepSelectedMeal, clearPrepSelection, completePrepMeals, prepCompletedMeals } = useUser();
+
+  const selectedMeals = useMemo(() => new Set(prepSelectedMeals), [prepSelectedMeals]);
 
   // Flatten all unique meals from the week (respecting overrides)
   const allMeals = useMemo(() => {
@@ -50,17 +52,12 @@ const MealPrepTab = () => {
     return (MEAL_TYPES.find((t) => mealsByType[t].length > 0) || "Almoço") as MealType;
   }, [mealsByType]);
 
-  const [selectedMeals, setSelectedMeals] = useState<Set<string>>(new Set());
   const [generatedSteps, setGeneratedSteps] = useState<{ step: string; done: boolean }[] | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
+  const [finishedRun, setFinishedRun] = useState<string[] | null>(null);
 
   const toggleMeal = (title: string) => {
-    setSelectedMeals((prev) => {
-      const next = new Set(prev);
-      if (next.has(title)) next.delete(title);
-      else next.add(title);
-      return next;
-    });
+    togglePrepSelectedMeal(title);
     setGeneratedSteps(null);
   };
 
@@ -92,6 +89,13 @@ const MealPrepTab = () => {
   const doneCount = generatedSteps?.filter((s) => s.done).length || 0;
   const totalSteps = generatedSteps?.length || 0;
   const progressVal = totalSteps > 0 ? Math.round((doneCount / totalSteps) * 100) : 0;
+
+  const handleFinishPrep = () => {
+    const titles = Array.from(selectedMeals);
+    completePrepMeals(titles);
+    setFinishedRun(titles);
+    setGeneratedSteps(null);
+  };
 
   return (
     <div className="space-y-5 pb-4">
@@ -270,7 +274,7 @@ const MealPrepTab = () => {
           })()}
 
           <button
-            onClick={() => { setGeneratedSteps(null); setSelectedMeals(new Set()); }}
+            onClick={() => { setGeneratedSteps(null); clearPrepSelection(); }}
             className="flex w-full items-center justify-center gap-2 rounded-xl border bg-card py-3 text-sm font-bold text-primary transition-colors hover:bg-secondary"
           >
             ← Selecionar outros pratos
@@ -279,11 +283,38 @@ const MealPrepTab = () => {
           {doneCount === totalSteps && (
             <div className="rounded-xl bg-nutri-green-light p-5 text-center animate-in fade-in zoom-in duration-300">
               <span className="text-3xl">🎉</span>
-              <h3 className="mt-2 text-lg font-extrabold text-primary">Parabéns!</h3>
-              <p className="text-sm text-muted-foreground">Sua semana de refeições está pronta!</p>
+              <h3 className="mt-2 text-lg font-extrabold text-primary">Mandou bem, chef! 👨‍🍳</h3>
+              <p className="text-sm text-muted-foreground">
+                {selectedMeals.size > 0
+                  ? `${selectedMeals.size} ${selectedMeals.size === 1 ? "refeição preparada" : "refeições preparadas"} e prontas pra semana.`
+                  : "Refeições prontas pra semana."}
+              </p>
+              <button
+                onClick={handleFinishPrep}
+                className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-extrabold text-primary-foreground shadow hover:opacity-90 transition"
+              >
+                <CheckCircle2 className="h-4 w-4" />
+                Concluir preparo (+{selectedMeals.size * 25} XP)
+              </button>
             </div>
           )}
         </>
+      )}
+
+      {finishedRun && (
+        <div className="rounded-xl border bg-card p-5 text-center animate-in fade-in zoom-in duration-300">
+          <span className="text-3xl">🏅</span>
+          <h3 className="mt-2 text-lg font-extrabold text-primary">+{finishedRun.length * 25} XP conquistados!</h3>
+          <p className="text-sm text-muted-foreground">
+            Total de pratos preparados na sessão: <strong>{prepCompletedMeals.length}</strong>
+          </p>
+          <button
+            onClick={() => setFinishedRun(null)}
+            className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl border bg-background px-5 py-2.5 text-sm font-bold text-primary hover:bg-secondary transition"
+          >
+            Selecionar mais pratos
+          </button>
+        </div>
       )}
     </div>
   );

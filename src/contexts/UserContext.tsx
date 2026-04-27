@@ -1,7 +1,8 @@
 import { createContext, useContext, useState, ReactNode, useMemo, useCallback } from "react";
-import { getMenuForProfile, DayPlan, Meal, MealType, getSubstitution, getSubstitutionOptions } from "@/data/mockData";
+import { getMenuForProfile, DayPlan, Meal, MealType, getSubstitution, getSubstitutionOptions, DietType } from "@/data/mockData";
 
 export type CookingSkill = "Mínimo" | "Básico" | "Tranquilo";
+export type { DietType };
 
 export type RoutineType = "Só Estuda" | "Trabalha e Estuda" | "Home Office e Estuda" | "Outro";
 
@@ -26,6 +27,7 @@ export interface UserProfile {
   preferences: string[];
   restrictions: string[];
   cookingSkill: CookingSkill;
+  diet: DietType;
   schedule?: RoutineSchedule;
 }
 
@@ -55,6 +57,9 @@ interface UserState {
   mealCompletions: MealCompletion;
   progress: UserProgress;
   menuOverrides: Record<string, Meal>;
+  shoppingChecked: string[];
+  prepSelectedMeals: string[];
+  prepCompletedMeals: string[];
 }
 
 interface UserContextType extends UserState {
@@ -71,6 +76,11 @@ interface UserContextType extends UserState {
   getEffectiveMeal: (dayIndex: number, mealIndex: number) => Meal;
   streak: number;
   badges: Badge[];
+  // Persistent UI state across tabs
+  toggleShoppingItem: (name: string) => void;
+  togglePrepSelectedMeal: (title: string) => void;
+  clearPrepSelection: () => void;
+  completePrepMeals: (titles: string[]) => void;
 }
 
 const XP_PER_MEAL = 15;
@@ -93,6 +103,9 @@ function getInitialState(): UserState {
     mealCompletions: {},
     progress: { xp: 0, streak: 0, badges: defaultBadges },
     menuOverrides: {},
+    shoppingChecked: [],
+    prepSelectedMeals: [],
+    prepCompletedMeals: [],
   };
 }
 
@@ -102,9 +115,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<UserState>(getInitialState);
 
   const currentMenu = useMemo(() => {
-    if (!state.currentData) return getMenuForProfile("Mais energia", "Básico");
-    return getMenuForProfile(state.currentData.goal, state.currentData.cookingSkill);
-  }, [state.currentData?.goal, state.currentData?.cookingSkill]);
+    if (!state.currentData) return getMenuForProfile("Mais energia", "Básico", "Onívoro");
+    return getMenuForProfile(
+      state.currentData.goal,
+      state.currentData.cookingSkill,
+      state.currentData.diet || "Onívoro"
+    );
+  }, [state.currentData?.goal, state.currentData?.cookingSkill, state.currentData?.diet]);
 
   const getEffectiveMeal = useCallback((dayIndex: number, mealIndex: number): Meal => {
     const key = `${dayIndex}-${mealIndex}`;
@@ -137,7 +154,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setState((prev) => {
       const currentMeal = getEffectiveMeal(dayIndex, mealIndex);
       const skill = prev.currentData?.cookingSkill || "Básico";
-      const newMeal = getSubstitution(currentMeal.type as MealType, currentMeal.title, skill as CookingSkill);
+      const diet = prev.currentData?.diet || "Onívoro";
+      const newMeal = getSubstitution(currentMeal.type as MealType, currentMeal.title, skill as CookingSkill, diet);
       if (!newMeal) return prev;
       const key = `${dayIndex}-${mealIndex}`;
       return { ...prev, menuOverrides: { ...prev.menuOverrides, [key]: newMeal } };
@@ -156,9 +174,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
       const meal = getEffectiveMeal(dayIndex, mealIndex);
       const skill = state.currentData?.cookingSkill || "Básico";
       const goal = state.currentData?.goal || "Mais energia";
-      return getSubstitutionOptions(meal.type as MealType, meal.title, skill, goal, 4);
+      const diet = state.currentData?.diet || "Onívoro";
+      return getSubstitutionOptions(meal.type as MealType, meal.title, skill, goal, 4, diet);
     },
-    [getEffectiveMeal, state.currentData?.cookingSkill, state.currentData?.goal]
+    [getEffectiveMeal, state.currentData?.cookingSkill, state.currentData?.goal, state.currentData?.diet]
   );
 
   const toggleMealCompletion = (dayIndex: number, mealIndex: number) => {
@@ -226,6 +245,59 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return total > 0 ? Math.round((done / total) * 100) : 0;
   };
 
+  const toggleShoppingItem = (name: string) => {
+    setState((prev) => {
+      const exists = prev.shoppingChecked.includes(name);
+      return {
+        ...prev,
+        shoppingChecked: exists
+          ? prev.shoppingChecked.filter((n) => n !== name)
+          : [...prev.shoppingChecked, name],
+      };
+    });
+  };
+
+  const togglePrepSelectedMeal = (title: string) => {
+    setState((prev) => {
+      const exists = prev.prepSelectedMeals.includes(title);
+      return {
+        ...prev,
+        prepSelectedMeals: exists
+          ? prev.prepSelectedMeals.filter((t) => t !== title)
+          : [...prev.prepSelectedMeals, title],
+      };
+    });
+  };
+
+  const clearPrepSelection = () => {
+    setState((prev) => ({ ...prev, prepSelectedMeals: [] }));
+  };
+
+  const completePrepMeals = (titles: string[]) => {
+    setState((prev) => {
+      const newCompleted = Array.from(new Set([...prev.prepCompletedMeals, ...titles]));
+      const xpGain = titles.length * 25;
+      let badges = [...prev.progress.badges];
+      const xp = prev.progress.xp + xpGain;
+      if (newCompleted.length >= 5) {
+        badges = badges.map((b) =>
+          b.id === "b3" && !b.unlocked ? { ...b, unlocked: true, unlockedAt: new Date().toISOString() } : b
+        );
+      }
+      if (xp >= 100) {
+        badges = badges.map((b) =>
+          b.id === "b5" && !b.unlocked ? { ...b, unlocked: true, unlockedAt: new Date().toISOString() } : b
+        );
+      }
+      return {
+        ...prev,
+        prepCompletedMeals: newCompleted,
+        prepSelectedMeals: [],
+        progress: { ...prev.progress, xp, badges },
+      };
+    });
+  };
+
   return (
     <UserContext.Provider
       value={{
@@ -243,6 +315,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
         getEffectiveMeal,
         streak: state.progress.streak,
         badges: state.progress.badges,
+        toggleShoppingItem,
+        togglePrepSelectedMeal,
+        clearPrepSelection,
+        completePrepMeals,
       }}
     >
       {children}

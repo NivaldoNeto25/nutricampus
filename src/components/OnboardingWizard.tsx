@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useUser, UserProfile, CookingSkill, RoutineSchedule, RoutineType } from "@/contexts/UserContext";
-import { ChevronRight, ChevronLeft, UtensilsCrossed, GraduationCap, Briefcase, Sparkles } from "lucide-react";
+import { useUser, UserProfile, CookingSkill, RoutineSchedule, RoutineType, DietType } from "@/contexts/UserContext";
+import { ChevronRight, ChevronLeft, UtensilsCrossed, GraduationCap, Briefcase, Sparkles, Leaf, Sprout, Drumstick } from "lucide-react";
 
 const goals = [
   { label: "Mais energia", emoji: "⚡" },
@@ -30,6 +30,12 @@ const cookingSkills: { label: CookingSkill; description: string; emoji: string }
   { label: "Tranquilo", description: "Consigo seguir receitas", emoji: "👨‍🍳" },
 ];
 
+const dietOptions: { label: DietType; hint: string; icon: typeof Leaf }[] = [
+  { label: "Onívoro", hint: "Como de tudo (carne, ovos, lacticínios)", icon: Drumstick },
+  { label: "Vegetariano", hint: "Sem carne, mas como ovos e laticínios", icon: Leaf },
+  { label: "Vegano", hint: "Apenas alimentos de origem vegetal", icon: Sprout },
+];
+
 const OnboardingWizard = () => {
   const { completeOnboarding } = useUser();
   const [step, setStep] = useState(0);
@@ -41,6 +47,7 @@ const OnboardingWizard = () => {
   const [preferences, setPreferences] = useState<string[]>([]);
   const [restrictions, setRestrictions] = useState<string[]>([]);
   const [cookingSkill, setCookingSkill] = useState<CookingSkill | "">("");
+  const [diet, setDiet] = useState<DietType | "">("");
   const [routineType, setRoutineType] = useState<RoutineType | "">("");
   const [collegeStart, setCollegeStart] = useState("19:00");
   const [collegeEnd, setCollegeEnd] = useState("22:30");
@@ -62,8 +69,9 @@ const OnboardingWizard = () => {
         return !!collegeStart && !!collegeEnd && !!workStart && !!workEnd;
       return true; // "Outro"
     }
-    if (step === 4) return preferences.length > 0 && restrictions.length > 0;
-    if (step === 5) return !!cookingSkill;
+    if (step === 4) return !!diet;
+    if (step === 5) return preferences.length > 0 && restrictions.length > 0;
+    if (step === 6) return !!cookingSkill;
     return true;
   };
 
@@ -88,12 +96,13 @@ const OnboardingWizard = () => {
       preferences,
       restrictions,
       cookingSkill: cookingSkill as CookingSkill,
+      diet: (diet || "Onívoro") as DietType,
       schedule,
     };
     completeOnboarding(profile);
   };
 
-  const totalSteps = 6;
+  const totalSteps = 7;
 
   const steps = [
     // Step 0: Personal data
@@ -270,6 +279,36 @@ const OnboardingWizard = () => {
     </div>,
 
     // Step 4: Preferences & Restrictions
+    // Step 4 (NEW): Diet preference
+    <div key="diet" className="space-y-4">
+      <div className="text-center">
+        <span className="text-4xl">🌱</span>
+        <h2 className="mt-2 text-lg font-extrabold">Qual sua preferência alimentar?</h2>
+        <p className="text-sm text-muted-foreground">Vamos adaptar o cardápio para você.</p>
+      </div>
+      <div className="space-y-2">
+        {dietOptions.map(({ label, hint, icon: Icon }) => {
+          const active = diet === label;
+          return (
+            <button
+              key={label}
+              onClick={() => setDiet(label)}
+              className={`flex w-full items-center gap-3 rounded-xl border p-4 text-left transition-all duration-200 ${
+                active ? "border-primary bg-nutri-green-light shadow-sm" : "bg-card hover:shadow-sm"
+              }`}
+            >
+              <Icon className={`h-5 w-5 shrink-0 ${active ? "text-primary" : "text-muted-foreground"}`} />
+              <div className="flex-1">
+                <p className={`text-sm font-extrabold ${active ? "text-primary" : ""}`}>{label}</p>
+                <p className="text-[11px] text-muted-foreground">{hint}</p>
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </div>,
+
+    // Step 5: Preferences & Restrictions
     <div key="prefs" className="space-y-5">
       <div className="text-center">
         <span className="text-4xl">🍽️</span>
