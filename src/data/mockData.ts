@@ -374,6 +374,8 @@ const defaultQuantities: Record<string, IngredientQuantity> = {
   "Maionese light": { amount: 10, unit: "g" },
   "Caldo de legumes": { amount: 200, unit: "ml" },
   "Sopa instantânea": { amount: 1, unit: "un" },
+  "Tofu": { amount: 150, unit: "g" },
+  "Brócolis": { amount: 100, unit: "g" },
   // Temperos
   "Curry": { amount: 1, unit: "pitada" },
   "Canela": { amount: 1, unit: "pitada" },
