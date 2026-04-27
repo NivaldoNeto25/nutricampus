@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useMemo } from "react";
 import { useUser } from "@/contexts/UserContext";
 import { Check, ShoppingCart } from "lucide-react";
 import { getQuantityForIngredient, formatQuantity } from "@/data/mockData";
@@ -41,7 +41,7 @@ interface AggItem {
 }
 
 const ShoppingTab = () => {
-  const { currentMenu, getEffectiveMeal } = useUser();
+  const { currentMenu, getEffectiveMeal, shoppingChecked, toggleShoppingItem } = useUser();
 
   const allIngredients = useMemo<AggItem[]>(() => {
     const map = new Map<string, AggItem>();
@@ -62,16 +62,8 @@ const ShoppingTab = () => {
     return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [currentMenu, getEffectiveMeal]);
 
-  const [checked, setChecked] = useState<Set<string>>(new Set());
-
-  const toggleItem = (name: string) => {
-    setChecked((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
-  };
+  const checked = useMemo(() => new Set(shoppingChecked), [shoppingChecked]);
+  const toggleItem = (name: string) => toggleShoppingItem(name);
 
   const categories: Category[] = ["Hortifruti", "Proteínas", "Grãos/Mercearia"];
   const checkedCount = checked.size;
