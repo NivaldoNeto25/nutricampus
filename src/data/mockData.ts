@@ -1,5 +1,6 @@
 export type MealType = "Café da Manhã" | "Lanche da Manhã" | "Almoço" | "Lanche da Tarde" | "Jantar";
 export type CookingSkill = "Mínimo" | "Básico" | "Tranquilo";
+export type DietType = "Onívoro" | "Vegetariano" | "Vegano";
 
 export interface Meal {
   type: MealType;
@@ -10,6 +11,8 @@ export interface Meal {
   ingredients: string[];
   prepSteps: string[];
   skill: CookingSkill;
+  // Quais dietas esta receita atende. Se omitido, assume-se "Onívoro".
+  diets?: DietType[];
 }
 
 export interface DayPlan {
