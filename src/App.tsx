@@ -14,6 +14,16 @@ const MEASUREMENT_ID = "G-J6V3T9ET40";
 
 ReactGA.initialize(MEASUREMENT_ID);
 
+const GoogleAnalyticsTracker = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    ReactGA.send({ hitType: "pageview", page: location.pathname });
+  }, [location]);
+
+  return null;
+};
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -24,6 +34,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <GoogleAnalyticsTracker />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="*" element={<NotFound />} />
