@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sparkles, Stethoscope, ShieldCheck } from "lucide-react";
+import { Sparkles, Stethoscope } from "lucide-react";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const Landing = () => {
@@ -28,11 +28,10 @@ const Landing = () => {
           </div>
         </section>
 
-        <section className="mt-20 grid gap-6 md:grid-cols-3">
+        <section className="mx-auto mt-20 grid max-w-3xl gap-6 md:grid-cols-2">
           {[
             { icon: Sparkles, title: "Para Pacientes", desc: "Rotina personalizada por dia da semana, marketplace de nutricionistas e chat direto." },
             { icon: Stethoscope, title: "Para Nutricionistas", desc: "Gestão de pacientes, montador de cardápios e vitrine pública." },
-            { icon: ShieldCheck, title: "Admin", desc: "Métricas da plataforma, usuários e assinaturas em um só lugar." },
           ].map(({ icon: Icon, title, desc }) => (
             <div key={title} className="rounded-2xl border bg-card p-6 shadow-sm">
               <Icon className="h-6 w-6 text-primary" />
