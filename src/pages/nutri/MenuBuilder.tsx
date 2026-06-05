@@ -1,65 +1,140 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Coffee, Utensils, Apple, Moon } from "lucide-react";
+import { Plus, Trash2, Loader2, Save } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
-const slots = [
-  { time: "08:00", title: "Café da Manhã", icon: Coffee, items: ["2 ovos mexidos", "1 fatia de pão integral", "1 fruta"] },
-  { time: "12:30", title: "Almoço", icon: Utensils, items: ["150g frango grelhado", "4 col. arroz integral", "Brócolis + salada"] },
-  { time: "15:30", title: "Lanche", icon: Apple, items: ["Iogurte natural", "1 col. de aveia"] },
-  { time: "19:30", title: "Jantar", icon: Moon, items: ["Sopa de legumes", "100g proteína magra"] },
-];
+type Meal = { time: string; title: string; desc: string };
+type Patient = { user_id: string; name: string | null };
 
-const MenuBuilder = () => (
-  <div className="space-y-4">
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-3">
-        <CardTitle>Montador de Cardápios</CardTitle>
-        <div className="flex gap-2">
-          <Select defaultValue="ana">
-            <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ana">Ana Silva</SelectItem>
-              <SelectItem value="bruno">Bruno Costa</SelectItem>
-              <SelectItem value="carla">Carla Mendes</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button size="sm"><Plus className="mr-1 h-4 w-4" /> Nova refeição</Button>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">Editando cardápio de <span className="font-semibold text-foreground">Ana Silva</span> · Objetivo: Emagrecimento</p>
-      </CardContent>
-    </Card>
+const emptyMeal = (): Meal => ({ time: "08:00", title: "", desc: "" });
 
-    <div className="grid gap-4 md:grid-cols-2">
-      {slots.map((s) => (
-        <Card key={s.time} className="transition-shadow hover:shadow-md">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-nutri-green-light text-primary">
-                <s.icon className="h-4 w-4" />
+const MenuBuilder = () => {
+  const { user } = useAuth();
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [patientId, setPatientId] = useState<string>("");
+  const [title, setTitle] = useState("Cardápio");
+  const [meals, setMeals] = useState<Meal[]>([emptyMeal()]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("user_id, name")
+      .eq("nutritionist_id", user.id)
+      .then(({ data }) => {
+        setPatients((data as Patient[]) ?? []);
+        setLoading(false);
+      });
+  }, [user]);
+
+  const updateMeal = (i: number, k: keyof Meal, v: string) => {
+    setMeals((m) => m.map((x, idx) => (idx === i ? { ...x, [k]: v } : x)));
+  };
+
+  const save = async () => {
+    if (!user || !patientId) return toast.error("Selecione um paciente.");
+    setSaving(true);
+    const { error } = await supabase.from("menus").insert({
+      nutritionist_id: user.id,
+      patient_id: patientId,
+      title,
+      meals_data: { meals } as any,
+    });
+    setSaving(false);
+    if (error) return toast.error(error.message);
+    toast.success("Cardápio salvo e enviado ao paciente!");
+    setMeals([emptyMeal()]);
+    setTitle("Cardápio");
+  };
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader><CardTitle>Montador de Cardápios</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          {loading ? (
+            <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+          ) : patients.length === 0 ? (
+            <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+              Você ainda não tem pacientes vinculados.
+            </p>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <Label>Paciente</Label>
+                <Select value={patientId} onValueChange={setPatientId}>
+                  <SelectTrigger><SelectValue placeholder="Selecione o paciente" /></SelectTrigger>
+                  <SelectContent>
+                    {patients.map((p) => (
+                      <SelectItem key={p.user_id} value={p.user_id}>{p.name ?? p.user_id}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-              <div>
-                <CardTitle className="text-sm">{s.title}</CardTitle>
-                <p className="text-xs text-muted-foreground">{s.time}</p>
+              <div className="space-y-1.5">
+                <Label>Título</Label>
+                <Input value={title} onChange={(e) => setTitle(e.target.value)} />
               </div>
             </div>
-            <Button size="sm" variant="ghost">Editar</Button>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-1.5 text-sm">
-              {s.items.map((i) => (
-                <li key={i} className="flex items-start gap-2 text-muted-foreground">
-                  <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-primary" /> {i}
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
-      ))}
+          )}
+        </CardContent>
+      </Card>
+
+      {patients.length > 0 && (
+        <>
+          <div className="grid gap-4 md:grid-cols-2">
+            {meals.map((m, i) => (
+              <Card key={i}>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+                  <CardTitle className="text-sm">Refeição {i + 1}</CardTitle>
+                  {meals.length > 1 && (
+                    <Button size="sm" variant="ghost" onClick={() => setMeals((ms) => ms.filter((_, idx) => idx !== i))}>
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-1.5">
+                      <Label>Hora</Label>
+                      <Input type="time" value={m.time} onChange={(e) => updateMeal(i, "time", e.target.value)} />
+                    </div>
+                    <div className="col-span-2 space-y-1.5">
+                      <Label>Título</Label>
+                      <Input placeholder="Café da Manhã" value={m.title} onChange={(e) => updateMeal(i, "title", e.target.value)} />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Descrição</Label>
+                    <Textarea rows={2} placeholder="Itens da refeição..." value={m.desc} onChange={(e) => updateMeal(i, "desc", e.target.value)} />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setMeals((m) => [...m, emptyMeal()])}>
+              <Plus className="mr-1 h-4 w-4" /> Adicionar refeição
+            </Button>
+            <Button onClick={save} disabled={saving || !patientId}>
+              {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Salvar cardápio
+            </Button>
+          </div>
+        </>
+      )}
     </div>
-  </div>
-);
+  );
+};
 
 export default MenuBuilder;
