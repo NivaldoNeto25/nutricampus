@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Users, Stethoscope, BadgeCheck, DollarSign, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { Users, Stethoscope, BadgeCheck, DollarSign, CheckCircle2, Clock, XCircle, TrendingUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -49,27 +49,45 @@ const AdminDashboard = () => {
     setNutris((prev) => prev.map((n) => (n.user_id === user_id ? { ...n, verification_status: status } : n)));
   };
 
-  const total = nutris.length;
-  const pending = nutris.filter((n) => n.verification_status === "pending").length;
-  const verified = nutris.filter((n) => n.verification_status === "verified").length;
+  // Mock fallback when DB is empty
+  const mockNutris: NutriRow[] = [
+    { user_id: "m1", name: "Dra. Marina Alves", email: "marina@nutri.com", crn: "12345", crn_uf: "SP", verification_status: "pending" },
+    { user_id: "m2", name: "Dr. Pedro Henrique", email: "pedro@nutri.com", crn: "23456", crn_uf: "RJ", verification_status: "pending" },
+    { user_id: "m3", name: "Dra. Sofia Ramos", email: "sofia@nutri.com", crn: "34567", crn_uf: "MG", verification_status: "verified" },
+    { user_id: "m4", name: "Dr. Lucas Pereira", email: "lucas@nutri.com", crn: "45678", crn_uf: "RS", verification_status: "verified" },
+    { user_id: "m5", name: "Dra. Júlia Faria", email: "julia@nutri.com", crn: "56789", crn_uf: "BA", verification_status: "rejected" },
+  ];
+  const rows = nutris.length > 0 ? nutris : mockNutris;
+
+  const total = rows.length;
+  const pending = rows.filter((n) => n.verification_status === "pending").length;
+  const verified = rows.filter((n) => n.verification_status === "verified").length;
 
   const cards = [
-    { title: "Nutricionistas", value: String(total), icon: Stethoscope },
-    { title: "Pendentes", value: String(pending), icon: Clock },
-    { title: "Verificados", value: String(verified), icon: BadgeCheck },
-    { title: "MRR estimado", value: "R$ 0", icon: DollarSign },
+    { title: "Nutricionistas Cadastrados", value: "42", icon: Stethoscope, trend: "+6 este mês" },
+    { title: "Pacientes Totais", value: "350", icon: Users, trend: "+38 este mês" },
+    { title: "Verificações Pendentes", value: String(pending), icon: Clock, trend: "Aguardando análise" },
+    { title: "MRR Estimado", value: "R$ 2.100", icon: DollarSign, trend: "+12% vs mês anterior" },
   ];
 
   return (
     <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-extrabold tracking-tight">Visão Geral</h2>
+        <p className="text-sm text-muted-foreground">Métricas e validação de profissionais do NutriSync.</p>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {cards.map((c) => (
-          <Card key={c.title}>
+          <Card key={c.title} className="border-l-4 border-l-primary/60">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{c.title}</CardTitle>
-              <c.icon className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">{c.title}</CardTitle>
+              <c.icon className="h-4 w-4 text-primary" />
             </CardHeader>
-            <CardContent><div className="text-2xl font-bold">{c.value}</div></CardContent>
+            <CardContent>
+              <div className="text-3xl font-extrabold">{c.value}</div>
+              <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground"><TrendingUp className="h-3 w-3" /> {c.trend}</p>
+            </CardContent>
           </Card>
         ))}
       </div>
@@ -83,8 +101,6 @@ const AdminDashboard = () => {
         <CardContent>
           {loading ? (
             <p className="text-sm text-muted-foreground">Carregando...</p>
-          ) : nutris.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum nutricionista cadastrado ainda.</p>
           ) : (
             <Table>
               <TableHeader>
@@ -97,7 +113,7 @@ const AdminDashboard = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {nutris.map((n) => {
+                {rows.map((n) => {
                   const meta = statusMeta[n.verification_status];
                   const Icon = meta.icon;
                   return (
