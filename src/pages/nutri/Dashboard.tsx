@@ -1,32 +1,38 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Users, CalendarClock, Wallet, TrendingUp } from "lucide-react";
+import { Users, ChefHat, Wallet, TrendingUp, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-
-const metrics = [
-  { title: "Pacientes Ativos", value: "15", trend: "+2 este mês", icon: Users },
-  { title: "Consultas Pendentes", value: "2", trend: "Próximas 7 dias", icon: CalendarClock },
-  { title: "Status da Assinatura", value: "Ativa", trend: "Plano Pro · R$ 89/mês", icon: Wallet },
-];
-
-const patients = [
-  { name: "Ana Silva", goal: "Emagrecimento", next: "12/06/2026", status: "Em dia" },
-  { name: "Bruno Costa", goal: "Hipertrofia", next: "15/06/2026", status: "Em dia" },
-  { name: "Carla Mendes", goal: "Reeducação alimentar", next: "20/06/2026", status: "Pendente" },
-  { name: "Diego Rocha", goal: "Performance esportiva", next: "22/06/2026", status: "Em dia" },
-  { name: "Eduarda Lima", goal: "Vegetariana balanceada", next: "08/06/2026", status: "Atrasado" },
-];
-
-const statusVariant: Record<string, "default" | "secondary" | "destructive"> = {
-  "Em dia": "default",
-  Pendente: "secondary",
-  Atrasado: "destructive",
-};
+import { supabase } from "@/integrations/supabase/client";
 
 const NutriDashboard = () => {
   const { user } = useAuth();
   const name = (user?.user_metadata as any)?.name?.split(" ")[0] ?? "Nutri";
+  const [patients, setPatients] = useState<any[]>([]);
+  const [menusCount, setMenusCount] = useState(0);
+  const [status, setStatus] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const [pats, menus, prof] = await Promise.all([
+        supabase.from("profiles").select("user_id, name, goal, created_at").eq("nutritionist_id", user.id).order("created_at", { ascending: false }).limit(5),
+        supabase.from("menus").select("id", { count: "exact", head: true }).eq("nutritionist_id", user.id),
+        supabase.from("nutritionists_profiles").select("verification_status").eq("user_id", user.id).maybeSingle(),
+      ]);
+      setPatients(pats.data ?? []);
+      setMenusCount(menus.count ?? 0);
+      setStatus((prof.data as any)?.verification_status ?? "pending");
+      setLoading(false);
+    })();
+  }, [user]);
+
+  const metrics = [
+    { title: "Pacientes Ativos", value: String(patients.length), trend: "Vinculados a você", icon: Users },
+    { title: "Cardápios Criados", value: String(menusCount), trend: "Total", icon: ChefHat },
+    { title: "Status da Conta", value: status === "verified" ? "Verificado" : status === "rejected" ? "Rejeitado" : "Pendente", trend: "Verificação CRN", icon: Wallet },
+  ];
 
   return (
     <div className="space-y-6">
@@ -57,28 +63,30 @@ const NutriDashboard = () => {
           <CardTitle className="text-lg">Pacientes Recentes</CardTitle>
         </CardHeader>
         <CardContent>
+          {loading ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+          ) : patients.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum paciente vinculado ainda.</p>
+          ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Objetivo</TableHead>
-                <TableHead>Próximo Retorno</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>Vinculado em</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {patients.map((p) => (
-                <TableRow key={p.name}>
-                  <TableCell className="font-medium">{p.name}</TableCell>
-                  <TableCell className="text-muted-foreground">{p.goal}</TableCell>
-                  <TableCell>{p.next}</TableCell>
-                  <TableCell>
-                    <Badge variant={statusVariant[p.status]}>{p.status}</Badge>
-                  </TableCell>
+                <TableRow key={p.user_id}>
+                  <TableCell className="font-medium">{p.name ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{p.goal ?? "—"}</TableCell>
+                  <TableCell>{new Date(p.created_at).toLocaleDateString("pt-BR")}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
+          )}
         </CardContent>
       </Card>
     </div>

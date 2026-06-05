@@ -26,14 +26,21 @@ const AdminDashboard = () => {
   const [nutris, setNutris] = useState<NutriRow[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [totals, setTotals] = useState({ nutris: 0, patients: 0 });
+
   const load = async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("nutritionists_profiles")
-      .select("user_id, name, email, crn, crn_uf, verification_status")
-      .order("created_at", { ascending: false });
+    const [{ data, error }, nutriCount, patientCount] = await Promise.all([
+      supabase
+        .from("nutritionists_profiles")
+        .select("user_id, name, email, crn, crn_uf, verification_status")
+        .order("created_at", { ascending: false }),
+      supabase.from("nutritionists_profiles").select("user_id", { count: "exact", head: true }),
+      supabase.from("profiles").select("user_id", { count: "exact", head: true }),
+    ]);
     if (error) toast.error(error.message);
     setNutris((data as NutriRow[]) ?? []);
+    setTotals({ nutris: nutriCount.count ?? 0, patients: patientCount.count ?? 0 });
     setLoading(false);
   };
 
@@ -49,25 +56,15 @@ const AdminDashboard = () => {
     setNutris((prev) => prev.map((n) => (n.user_id === user_id ? { ...n, verification_status: status } : n)));
   };
 
-  // Mock fallback when DB is empty
-  const mockNutris: NutriRow[] = [
-    { user_id: "m1", name: "Dra. Marina Alves", email: "marina@nutri.com", crn: "12345", crn_uf: "SP", verification_status: "pending" },
-    { user_id: "m2", name: "Dr. Pedro Henrique", email: "pedro@nutri.com", crn: "23456", crn_uf: "RJ", verification_status: "pending" },
-    { user_id: "m3", name: "Dra. Sofia Ramos", email: "sofia@nutri.com", crn: "34567", crn_uf: "MG", verification_status: "verified" },
-    { user_id: "m4", name: "Dr. Lucas Pereira", email: "lucas@nutri.com", crn: "45678", crn_uf: "RS", verification_status: "verified" },
-    { user_id: "m5", name: "Dra. Júlia Faria", email: "julia@nutri.com", crn: "56789", crn_uf: "BA", verification_status: "rejected" },
-  ];
-  const rows = nutris.length > 0 ? nutris : mockNutris;
-
-  const total = rows.length;
-  const pending = rows.filter((n) => n.verification_status === "pending").length;
-  const verified = rows.filter((n) => n.verification_status === "verified").length;
+  const pending = nutris.filter((n) => n.verification_status === "pending");
+  const verifiedCount = nutris.filter((n) => n.verification_status === "verified").length;
+  const mrr = verifiedCount * 89;
 
   const cards = [
-    { title: "Nutricionistas Cadastrados", value: "42", icon: Stethoscope, trend: "+6 este mês" },
-    { title: "Pacientes Totais", value: "350", icon: Users, trend: "+38 este mês" },
-    { title: "Verificações Pendentes", value: String(pending), icon: Clock, trend: "Aguardando análise" },
-    { title: "MRR Estimado", value: "R$ 2.100", icon: DollarSign, trend: "+12% vs mês anterior" },
+    { title: "Nutricionistas Cadastrados", value: String(totals.nutris), icon: Stethoscope, trend: `${verifiedCount} verificados` },
+    { title: "Pacientes Totais", value: String(totals.patients), icon: Users, trend: "Contas ativas" },
+    { title: "Verificações Pendentes", value: String(pending.length), icon: Clock, trend: "Aguardando análise" },
+    { title: "MRR Estimado", value: `R$ ${mrr.toLocaleString("pt-BR")}`, icon: DollarSign, trend: "Plano Pro · R$ 89" },
   ];
 
   return (
@@ -101,6 +98,8 @@ const AdminDashboard = () => {
         <CardContent>
           {loading ? (
             <p className="text-sm text-muted-foreground">Carregando...</p>
+          ) : pending.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Nenhum nutricionista pendente de verificação.</p>
           ) : (
             <Table>
               <TableHeader>
@@ -113,7 +112,7 @@ const AdminDashboard = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((n) => {
+                {pending.map((n) => {
                   const meta = statusMeta[n.verification_status];
                   const Icon = meta.icon;
                   return (
@@ -127,12 +126,8 @@ const AdminDashboard = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right space-x-2">
-                        {n.verification_status !== "verified" && (
-                          <Button size="sm" onClick={() => updateStatus(n.user_id, "verified")}>Aprovar</Button>
-                        )}
-                        {n.verification_status !== "rejected" && (
-                          <Button size="sm" variant="outline" onClick={() => updateStatus(n.user_id, "rejected")}>Rejeitar</Button>
-                        )}
+                        <Button size="sm" onClick={() => updateStatus(n.user_id, "verified")}>Aprovar</Button>
+                        <Button size="sm" variant="outline" onClick={() => updateStatus(n.user_id, "rejected")}>Recusar</Button>
                       </TableCell>
                     </TableRow>
                   );

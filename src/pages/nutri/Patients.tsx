@@ -1,57 +1,87 @@
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Search, Plus } from "lucide-react";
+import { Search, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
-const patients = [
-  { name: "Ana Silva", goal: "Emagrecimento", since: "Mar/2026", adherence: "92%", status: "Em dia" },
-  { name: "Bruno Costa", goal: "Hipertrofia", since: "Jan/2026", adherence: "88%", status: "Em dia" },
-  { name: "Carla Mendes", goal: "Reeducação alimentar", since: "Mai/2026", adherence: "74%", status: "Pendente" },
-  { name: "Diego Rocha", goal: "Performance esportiva", since: "Fev/2026", adherence: "96%", status: "Em dia" },
-  { name: "Eduarda Lima", goal: "Vegetariana balanceada", since: "Abr/2026", adherence: "61%", status: "Atrasado" },
-];
-
-const variant: Record<string, "default" | "secondary" | "destructive"> = {
-  "Em dia": "default", Pendente: "secondary", Atrasado: "destructive",
+type Patient = {
+  user_id: string;
+  name: string | null;
+  email: string | null;
+  goal: string | null;
+  weight: number | null;
+  height: number | null;
+  created_at: string;
 };
 
-const Patients = () => (
-  <Card>
-    <CardHeader className="flex flex-row items-center justify-between gap-3">
-      <CardTitle>Meus Pacientes</CardTitle>
-      <Button size="sm"><Plus className="mr-1 h-4 w-4" /> Convidar paciente</Button>
-    </CardHeader>
-    <CardContent className="space-y-4">
-      <div className="relative max-w-sm">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input placeholder="Buscar paciente..." className="pl-9" />
-      </div>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Nome</TableHead>
-            <TableHead>Objetivo</TableHead>
-            <TableHead>Desde</TableHead>
-            <TableHead>Adesão</TableHead>
-            <TableHead>Status</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {patients.map((p) => (
-            <TableRow key={p.name}>
-              <TableCell className="font-medium">{p.name}</TableCell>
-              <TableCell className="text-muted-foreground">{p.goal}</TableCell>
-              <TableCell>{p.since}</TableCell>
-              <TableCell className="font-semibold">{p.adherence}</TableCell>
-              <TableCell><Badge variant={variant[p.status]}>{p.status}</Badge></TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </CardContent>
-  </Card>
-);
+const Patients = () => {
+  const { user } = useAuth();
+  const [list, setList] = useState<Patient[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [q, setQ] = useState("");
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("user_id, name, email, goal, weight, height, created_at")
+        .eq("nutritionist_id", user.id)
+        .order("created_at", { ascending: false });
+      setList((data as Patient[]) ?? []);
+      setLoading(false);
+    })();
+  }, [user]);
+
+  const filtered = list.filter((p) =>
+    !q || (p.name ?? "").toLowerCase().includes(q.toLowerCase()) || (p.email ?? "").toLowerCase().includes(q.toLowerCase()),
+  );
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Meus Pacientes ({list.length})</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input placeholder="Buscar paciente..." className="pl-9" value={q} onChange={(e) => setQ(e.target.value)} />
+        </div>
+        {loading ? (
+          <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+        ) : filtered.length === 0 ? (
+          <p className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+            Nenhum paciente vinculado ainda. Compartilhe seu perfil público no marketplace.
+          </p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Nome</TableHead>
+                <TableHead>E-mail</TableHead>
+                <TableHead>Objetivo</TableHead>
+                <TableHead>Peso</TableHead>
+                <TableHead>Altura</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((p) => (
+                <TableRow key={p.user_id}>
+                  <TableCell className="font-medium">{p.name ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{p.email ?? "—"}</TableCell>
+                  <TableCell>{p.goal ?? "—"}</TableCell>
+                  <TableCell>{p.weight ? `${p.weight} kg` : "—"}</TableCell>
+                  <TableCell>{p.height ? `${p.height} cm` : "—"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
 
 export default Patients;

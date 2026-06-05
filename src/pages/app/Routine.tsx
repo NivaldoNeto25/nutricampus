@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Coffee, Sun, Utensils, Apple, Moon, Stethoscope, Sparkles } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const days = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
 
-const meals = [
+const fallbackMeals = [
   { time: "08:00", title: "Café da Manhã", desc: "Ovos mexidos, pão integral e fruta", icon: Coffee, prescribed: true },
   { time: "10:30", title: "Lanche da Manhã", desc: "Iogurte natural com aveia", icon: Apple, prescribed: false },
   { time: "12:30", title: "Almoço", desc: "Frango grelhado, arroz integral, brócolis e salada", icon: Utensils, prescribed: true },
@@ -14,18 +16,49 @@ const meals = [
   { time: "19:30", title: "Jantar", desc: "Sopa de legumes com proteína magra", icon: Moon, prescribed: true },
 ];
 
+const iconFor = (i: number) => [Coffee, Apple, Utensils, Sun, Moon][i % 5];
+
+type MealItem = { time: string; title: string; desc: string };
+
 const Routine = () => {
   const { user } = useAuth();
   const name = (user?.user_metadata as any)?.name?.split(" ")[0] ?? "amigo(a)";
   const today = new Date().getDay();
   const [active, setActive] = useState((today + 6) % 7);
+  const [loading, setLoading] = useState(true);
+  const [meals, setMeals] = useState<MealItem[]>([]);
+  const [prescribed, setPrescribed] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      setLoading(true);
+      const { data } = await supabase
+        .from("menus")
+        .select("title, meals_data, updated_at")
+        .eq("patient_id", user.id)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (data && Array.isArray((data.meals_data as any)?.meals)) {
+        setMeals((data.meals_data as any).meals as MealItem[]);
+        setPrescribed(true);
+      } else {
+        setMeals(fallbackMeals.map(({ time, title, desc }) => ({ time, title, desc })));
+        setPrescribed(false);
+      }
+      setLoading(false);
+    })();
+  }, [user]);
 
   return (
     <div className="space-y-5">
       <div>
         <p className="text-xs font-semibold uppercase tracking-wider text-primary">Bom dia ☀️</p>
         <h2 className="text-2xl font-extrabold leading-tight">Olá, {name}!</h2>
-        <p className="text-sm text-muted-foreground">Aqui está sua rotina de hoje.</p>
+        <p className="text-sm text-muted-foreground">
+          {prescribed ? "Cardápio prescrito pelo seu nutri." : "Sugestão genérica — vincule um nutri para receber sua prescrição."}
+        </p>
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1">
@@ -46,11 +79,14 @@ const Routine = () => {
       </div>
 
       <div className="space-y-3">
-        {meals.map((m) => (
-          <Card key={m.time} className="overflow-hidden transition-shadow hover:shadow-md">
+        {loading && Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-20 w-full rounded-xl" />)}
+        {!loading && meals.map((m, i) => {
+          const Icon = iconFor(i);
+          return (
+          <Card key={`${m.time}-${i}`} className="overflow-hidden transition-shadow hover:shadow-md">
             <CardContent className="flex items-start gap-3 p-4">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-nutri-green-light text-primary">
-                <m.icon className="h-5 w-5" />
+                <Icon className="h-5 w-5" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center justify-between gap-2">
@@ -59,7 +95,7 @@ const Routine = () => {
                 </div>
                 <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{m.desc}</p>
                 <div className="mt-2">
-                  {m.prescribed ? (
+                  {prescribed ? (
                     <Badge variant="default" className="gap-1 text-[10px]">
                       <Stethoscope className="h-3 w-3" /> Prescrição profissional
                     </Badge>
@@ -72,7 +108,7 @@ const Routine = () => {
               </div>
             </CardContent>
           </Card>
-        ))}
+        );})}
       </div>
     </div>
   );
