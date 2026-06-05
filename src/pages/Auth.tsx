@@ -24,6 +24,8 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [signupRole, setSignupRole] = useState<AppRole>(initialRole);
+  const [crn, setCrn] = useState("");
+  const [crnUf, setCrnUf] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -45,6 +47,9 @@ const Auth = () => {
 
   const onSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (signupRole === "nutritionist" && (!crn.trim() || !crnUf.trim())) {
+      return toast.error("Informe seu CRN e a UF.");
+    }
     setBusy(true);
     const redirectUrl = `${window.location.origin}/`;
     const { error } = await supabase.auth.signUp({
@@ -52,7 +57,11 @@ const Auth = () => {
       password,
       options: {
         emailRedirectTo: redirectUrl,
-        data: { name, role: signupRole },
+        data: {
+          name,
+          role: signupRole,
+          ...(signupRole === "nutritionist" ? { crn: crn.trim(), crn_uf: crnUf.trim().toUpperCase() } : {}),
+        },
       },
     });
     setBusy(false);
@@ -121,6 +130,18 @@ const Auth = () => {
                   <Label htmlFor="name">Nome</Label>
                   <Input id="name" required value={name} onChange={(e) => setName(e.target.value)} />
                 </div>
+                {signupRole === "nutritionist" && (
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="col-span-2 space-y-1.5">
+                      <Label htmlFor="crn">Número do CRN</Label>
+                      <Input id="crn" required value={crn} onChange={(e) => setCrn(e.target.value)} placeholder="Ex.: 12345" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="crn-uf">UF</Label>
+                      <Input id="crn-uf" required maxLength={2} value={crnUf} onChange={(e) => setCrnUf(e.target.value.toUpperCase())} placeholder="SP" />
+                    </div>
+                  </div>
+                )}
                 <div className="space-y-1.5">
                   <Label htmlFor="email2">E-mail</Label>
                   <Input id="email2" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
