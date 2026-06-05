@@ -72,6 +72,8 @@ export type Database = {
         Row: {
           bio: string | null
           created_at: string
+          crn: string | null
+          crn_uf: string | null
           email: string | null
           is_active_subscriber: boolean
           methodology: string | null
@@ -81,10 +83,13 @@ export type Database = {
           specialties: string[]
           updated_at: string
           user_id: string
+          verification_status: Database["public"]["Enums"]["verification_status"]
         }
         Insert: {
           bio?: string | null
           created_at?: string
+          crn?: string | null
+          crn_uf?: string | null
           email?: string | null
           is_active_subscriber?: boolean
           methodology?: string | null
@@ -94,10 +99,13 @@ export type Database = {
           specialties?: string[]
           updated_at?: string
           user_id: string
+          verification_status?: Database["public"]["Enums"]["verification_status"]
         }
         Update: {
           bio?: string | null
           created_at?: string
+          crn?: string | null
+          crn_uf?: string | null
           email?: string | null
           is_active_subscriber?: boolean
           methodology?: string | null
@@ -107,6 +115,7 @@ export type Database = {
           specialties?: string[]
           updated_at?: string
           user_id?: string
+          verification_status?: Database["public"]["Enums"]["verification_status"]
         }
         Relationships: []
       }
@@ -188,6 +197,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "nutritionist" | "user"
+      verification_status: "pending" | "verified" | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -316,6 +326,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "nutritionist", "user"],
+      verification_status: ["pending", "verified", "rejected"],
     },
   },
 } as const
