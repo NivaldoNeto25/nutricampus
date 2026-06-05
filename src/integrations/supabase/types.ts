@@ -14,16 +14,180 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      menus: {
+        Row: {
+          created_at: string
+          id: string
+          meals_data: Json
+          nutritionist_id: string
+          patient_id: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          meals_data?: Json
+          nutritionist_id: string
+          patient_id: string
+          title?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          meals_data?: Json
+          nutritionist_id?: string
+          patient_id?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
+      nutritionists_profiles: {
+        Row: {
+          bio: string | null
+          created_at: string
+          email: string | null
+          is_active_subscriber: boolean
+          methodology: string | null
+          name: string | null
+          photo_url: string | null
+          price: number | null
+          specialties: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bio?: string | null
+          created_at?: string
+          email?: string | null
+          is_active_subscriber?: boolean
+          methodology?: string | null
+          name?: string | null
+          photo_url?: string | null
+          price?: number | null
+          specialties?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bio?: string | null
+          created_at?: string
+          email?: string | null
+          is_active_subscriber?: boolean
+          methodology?: string | null
+          name?: string | null
+          photo_url?: string | null
+          price?: number | null
+          specialties?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          goal: string | null
+          height: number | null
+          name: string | null
+          nutritionist_id: string | null
+          onboarding_complete: boolean
+          routine_schedule: Json
+          updated_at: string
+          user_id: string
+          weight: number | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          goal?: string | null
+          height?: number | null
+          name?: string | null
+          nutritionist_id?: string | null
+          onboarding_complete?: boolean
+          routine_schedule?: Json
+          updated_at?: string
+          user_id: string
+          weight?: number | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          goal?: string | null
+          height?: number | null
+          name?: string | null
+          nutritionist_id?: string | null
+          onboarding_complete?: boolean
+          routine_schedule?: Json
+          updated_at?: string
+          user_id?: string
+          weight?: number | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "nutritionist" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +314,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "nutritionist", "user"],
+    },
   },
 } as const
